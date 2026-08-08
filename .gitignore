@@ -1,0 +1,19 @@
+# Local Claude Code settings (per-machine)
+.claude/settings.local.json
+
+# Dependencies
+node_modules/
+bun.lockb.local
+
+# Env & secrets
+.env
+.env.*
+*.local
+
+# OS / editor cruft
+.DS_Store
+*.log
+
+# Scratch
+scratch/
+tmp/
