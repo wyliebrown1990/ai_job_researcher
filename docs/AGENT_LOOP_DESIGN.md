@@ -92,6 +92,12 @@ ENRICH & SCORE stage so scoring logic lives in one place.
 - **Tools:** WebSearch, WebFetch, RSS, YC/Product Hunt/HN sources, funding-news queries.
 - **Output:** `candidates[]` with {name, domain, why_surfaced, source_url, date}.
 - **Evidence:** each candidate has ≥1 dated source; dedup rate reported; count within cap.
+- **Identity rule (from E4):** the canonical key is the **normalized primary domain**,
+  never the display name (companies appear as "HappyRobot" / "Happyrobot Inc." /
+  "happyrobot.ai"). Keep an `aliases[]` set; on a "new" candidate, resolve domain →
+  if it matches an existing record, **REFRESH** it (don't insert). Generic names
+  ("June") collide with unrelated entities → never match/merge on name without a
+  domain; if no domain resolves, route to the review queue rather than guess.
 
 ### N4 — REFRESH (act)
 - **Context:** watchlist companies past staleness window + their prior signals.
@@ -141,6 +147,15 @@ evidence, not on how sparse the discovery listing was.
 agents", "targeting $X ARR") are goals, not metrics — routed to the review queue and
 never counted as traction.
 
+**Rumor ≠ round (from E5).** Classify funding language before creating a
+`funding_event`: "in talks / reportedly / is seeking / could raise" → **rumor**
+(review queue, `rumored_unconfirmed`); "raised / closed / announced / led by" →
+**event** (eligible for the Funding section). And **corroboration must be
+independent** — N outlets echoing one paywalled report count as **one** source, not
+N; trace secondaries to origin. A paywalled/unreachable primary is *unverifiable, not
+false*: escalate and set a watch to auto-promote if the round later closes with a
+verifiable dated source.
+
 ### N6 — JOB SCAN (act)
 - **Context:** active watchlist companies + Wylie's target titles + seniority + locations.
 - **Tools:** Greenhouse/Lever/Ashby board APIs (**primary source of truth — reliable JSON**), company career pages, Google Jobs / Work-at-a-Startup / Wellfound (secondary, discovery only — never for counts).
@@ -156,6 +171,16 @@ never counted as traction.
 - **`role_watch` primitive:** a company may carry a role-watch (e.g. "PM", "Partner").
   When a future posting matches a watch, the next digest raises a callout — captures
   cases like a company announcing GTM expansion before the roles are posted.
+- **Rule (from E3) — use the ATS JSON API, never the HTML careers page.** Greenhouse
+  `boards-api.greenhouse.io/v1/boards/{token}/jobs` and Ashby
+  `api.ashbyhq.com/posting-api/job-board/{slug}` return clean JSON; the human pages are
+  JS-rendered and dump the whole board.
+- **Rule (from E3) — match on title AND JD body + department, not title alone.** A
+  Solutions/Partner role titled "Applied AI Lead" would be missed by title-only
+  matching (false negative). Match target concepts across all three fields.
+- **Rule (from E3) — postings churn; timestamp & re-verify.** Job links go stale
+  within days (an observed Solutions role 404'd between discovery and enrichment).
+  Re-fetch live from the board API each run, mark dead links, stamp retrieval time.
 
 ### N7 — VERIFY (gate)
 - **Context:** everything produced this run + the evidence hard-gate (C4).
@@ -331,6 +356,9 @@ funding, roles-for-you). It gives a working daily loop end-to-end on the parts w
 |------|------|---------|--------|--------------------|
 | 2026-08-08 | E1 (real growth, well-sourced) | HappyRobot | **PASS** — score 85, C4 gate held | (1) ATS-JSON is source of truth, ignore aggregator counts; (2) count in code not LLM; (3) `fit_caveat` on role matches; (4) `role_watch` primitive. See `docs/samples/e1-happyrobot.md`. |
 | 2026-08-08 | E2 (hype / thin metrics) | June AI | **PASS** — score 40, downgraded to Notable-but-unproven | (5) separate `funding_event` from `growth_score` + `stage` tag; (6) new "Notable but unproven" digest bucket; (7) enrich before downgrading; (8) aspirational ≠ actual (review queue). See `docs/samples/e2-june-ai.md`. |
+| 2026-08-08 | E3 (matching job precision) | Anthropic | **PASS** — 2 target-title roles surfaced, dated, with fit_caveat | (9) use ATS JSON API not HTML page (Greenhouse too); (10) match title AND body+department (avoid false negatives); (11) postings churn — timestamp & re-verify dead links; seniority is the key fit_caveat. See `docs/samples/e3-anthropic-role.md`. |
+| 2026-08-08 | E4 (duplicate / already tracked) | HappyRobot / June AI | **PASS** — variants collapse via domain key | (12) canonical key = normalized domain + `aliases[]`, refresh not insert; (13) generic names require domain resolution — never merge on name alone. See `docs/samples/e4-dedup.md`. |
+| 2026-08-08 | E5 (dead / unverifiable source) | Harvey (rumor) | **PASS** — routed to review queue, no funding_event | (14) rumor≠round funding-language classifier; (15) corroboration must be independent (echoes of one paywalled report = 1 source); (16) paywalled primary = unverifiable→escalate + auto-promote watch. See `docs/samples/e5-harvey-rumor.md`. |
 
 ---
 
