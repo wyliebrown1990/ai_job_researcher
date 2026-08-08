@@ -22,9 +22,12 @@ gates) lives in **[docs/AGENT_LOOP_DESIGN.md](docs/AGENT_LOOP_DESIGN.md)**.
 
 ## Status
 
-🚧 Early build. Design approved; validating the core ENRICH → JOB SCAN → VERIFY
-slice (the funding + hiring-velocity ingestion bottleneck) before automating the
-full daily schedule.
+🚧 Early build. Design approved and validated against live data (5/5 eval cases pass).
+The deterministic core is implemented and unit-tested — ATS fetchers (Ashby /
+Greenhouse / Lever), domain-based dedup, funding-language classifier, title-first
+role matching, growth scoring + bucketing, and a SQLite state store. `bun run scan
+jobs <slug>` runs a live JOB SCAN today. Next: wire the LLM enrichment/discovery
+nodes and the daily schedule + email delivery. See [src/README.md](src/README.md).
 
 ## Stack
 

@@ -175,9 +175,15 @@ verifiable dated source.
   `boards-api.greenhouse.io/v1/boards/{token}/jobs` and Ashby
   `api.ashbyhq.com/posting-api/job-board/{slug}` return clean JSON; the human pages are
   JS-rendered and dump the whole board.
-- **Rule (from E3) — match on title AND JD body + department, not title alone.** A
-  Solutions/Partner role titled "Applied AI Lead" would be missed by title-only
-  matching (false negative). Match target concepts across all three fields.
+- **Rule (from E3, refined in build) — deterministic matcher is TITLE-first;
+  semantic body-matching is deferred to the LLM node.** Substring-matching JD *bodies*
+  floods false positives at scale — on live boards, matching any body mention of a
+  target term surfaced Legal/Recruiter/Marketing roles (HappyRobot 54/81, Anthropic
+  121/392 "matches"). The deterministic layer therefore matches curated role-defining
+  **title** forms (incl. SE-equivalents like "Applied AI Architect", "Deployment
+  Strategist") plus an **exclusion list** (recruiter/legal/marketing/…) → precision
+  jumped to 29/81 and 42/392, all genuine. Catching an oddly-named role that IS a
+  target (the false-negative case) is the LLM enrichment node's job, not substring search.
 - **Rule (from E3) — postings churn; timestamp & re-verify.** Job links go stale
   within days (an observed Solutions role 404'd between discovery and enrichment).
   Re-fetch live from the board API each run, mark dead links, stamp retrieval time.
