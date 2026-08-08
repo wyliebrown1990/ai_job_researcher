@@ -12,6 +12,8 @@ import { fetchBoard, detectBoard } from "./fetchers/ats/index.ts";
 import { matchBoard } from "./lib/roleMatch.ts";
 import { fetchesUsed } from "./fetchers/http.ts";
 import { Store } from "./db/db.ts";
+import { runDaily } from "./pipeline.ts";
+import { loadSeed } from "./seed.ts";
 
 function parseFlags(args: string[]): { positional: string[]; flags: Record<string, string> } {
   const positional: string[] = [];
@@ -72,16 +74,37 @@ function cmdList() {
   store.close();
 }
 
+function cmdSeed(path?: string) {
+  const store = new Store();
+  const { companies, review } = loadSeed(store, path ?? "data/seed.json");
+  console.log(`Seeded ${companies} company(ies) and ${review} review item(s).`);
+  store.close();
+}
+
+async function cmdRun(force: boolean) {
+  const store = new Store();
+  const res = await runDaily(store, { force });
+  if (res.skipped) {
+    console.log(`Run for ${res.runDate} already completed (idempotent). Use --force to re-run.`);
+  } else {
+    console.log(`✅ Digest for ${res.runDate}: ${res.digestPath}`);
+    console.log(`   ${res.companiesScored} scored · emailed=${res.emailed} · ${res.fetches} fetches`);
+  }
+  store.close();
+}
+
 async function main() {
   const [cmd, ...rest] = process.argv.slice(2);
   const { positional, flags } = parseFlags(rest);
   switch (cmd) {
     case "jobs": await cmdJobs(positional[0]!, flags.provider as AtsProvider | undefined); break;
     case "detect": await cmdDetect(positional[0]!); break;
+    case "seed": cmdSeed(positional[0]); break;
+    case "run": await cmdRun(flags.force === "true" || "force" in flags); break;
     case "review": cmdReview(); break;
     case "list": cmdList(); break;
     default:
-      console.log("Usage: bun run scan <jobs|detect|review|list> [slug] [--provider ashby|greenhouse|lever]");
+      console.log("Usage: bun run scan <run|seed|jobs|detect|review|list> [slug] [--provider p] [--force]");
   }
 }
 

@@ -9,7 +9,11 @@ TypeScript + bun implementation of the research loop. See
 src/
   config.ts            # budgets, staleness, target roles + exclusions, score weights
   types.ts             # Company, JobPosting, FundingEvent, GrowthScore, ReviewItem, …
-  db/db.ts             # bun:sqlite state store (watchlist audit trail, idempotency)
+  pipeline.ts          # daily loop: ingest→refresh→job-scan→verify→rank→deliver
+  digest.ts            # RANK & DIGEST — renders the daily markdown (N9)
+  deliver.ts           # PERSIST & DELIVER — writes digests/, email TODO (N10)
+  seed.ts              # bootstrap watchlist + review items from data/seed.json
+  db/db.ts             # bun:sqlite state store (idempotency, review queue)
   fetchers/
     http.ts            # fetch w/ per-run budget + timeout (design §6)
     ats/ashby.ts       # Ashby posting API (validated, E1)
@@ -21,8 +25,20 @@ src/
     fundingLanguage.ts # rumor≠round classifier + amount/stage parse (E5)
     roleMatch.ts       # title-first role matching + fit_caveat (E1/E3)
     scoring.ts         # growth score + buckets (funding≠growth, E2)
-  cli.ts               # entry: jobs / detect / review / list
+    enrich.ts          # ENRICH & SCORE + JOB SCAN for one company (N5/N6)
+  cli.ts               # entry: run / seed / jobs / detect / review / list
 ```
+
+## The daily run
+
+`bun run scan run` executes the full deterministic loop over the watchlist:
+ingest state → refresh each company's ATS board (open-roles + hiring-velocity delta +
+role matches) → score & bucket → verify the evidence gate → render
+`digests/digest-YYYY-MM-DD.md` → persist. Runs are idempotent per calendar day
+(`--force` to re-run). Email delivery is the remaining last-mile TODO in `deliver.ts`.
+
+**State & audit trail:** the human-readable record is `data/seed.json` + the committed
+`digests/`. The SQLite store under `state/` is a rebuildable local cache (gitignored).
 
 ## What is deterministic vs LLM
 
@@ -39,9 +55,12 @@ they can't yet be verified deterministically (design §"kept manual").
 
 ```bash
 bun install
-bun test            # 22 unit tests across identity/funding/roleMatch/scoring
+bun test            # 24 unit tests across identity/funding/roleMatch/scoring/digest
 bun run typecheck   # tsc --noEmit, strict
-bun run scan jobs happyrobot.ai              # live JOB SCAN (auto-detect ATS)
+bun run scan seed                            # bootstrap watchlist from data/seed.json
+bun run scan run                             # run the full daily loop → digests/
+bun run scan run --force                     # re-run same day (idempotency override)
+bun run scan jobs happyrobot.ai              # live JOB SCAN one board (auto-detect ATS)
 bun run scan jobs anthropic --provider greenhouse
 bun run scan detect <slug>                   # which ATS a slug uses
 bun run scan list                            # watchlist

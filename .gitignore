@@ -5,9 +5,9 @@
 node_modules/
 bun.lockb.local
 
-# Local state DB (SQLite) — WAL/shm are transient; ajr.db itself is the audit trail
-state/*.db-wal
-state/*.db-shm
+# Local state DB (SQLite) — a rebuildable cache from data/seed.json + runs.
+# The human-readable audit trail is data/seed.json + the committed digests/.
+state/
 
 # Env & secrets
 .env

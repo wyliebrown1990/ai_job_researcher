@@ -1,0 +1,59 @@
+{
+  "_note": "Seed watchlist derived from the E1/E2 research runs (2026-08-08). Judgment sub-scores (customerTraction, productMomentum) are research-provided inputs, not deterministic — see evidence for provenance. June AI has no publicly listed domain, so per the E4 rule it is a review item, not a fabricated watchlist entry.",
+  "companies": [
+    {
+      "domain": "happyrobot.ai",
+      "displayName": "HappyRobot",
+      "description": "Agentic AI platform automating enterprise logistics & supply-chain operations.",
+      "hq": "San Francisco, CA",
+      "foundedYear": 2023,
+      "category": "Agentic AI / Logistics",
+      "status": "promising",
+      "ats": { "provider": "ashby", "slug": "happyrobot.ai" },
+      "totalRaisedUsd": 200000000,
+      "latestFunding": {
+        "stage": "series-c",
+        "amountUsd": 150000000,
+        "valuationUsd": 1200000000,
+        "leadInvestors": ["Prysm Capital", "Eurazeo"],
+        "otherInvestors": ["a16z", "Base10", "Y Combinator", "Koch Disruptive Technologies"],
+        "announcedDate": "2026-08-04",
+        "evidence": []
+      },
+      "judgments": { "customerTraction": 0.85, "productMomentum": 0.8 },
+      "roleWatches": ["product-manager"],
+      "evidence": [
+        { "claim": "Raised $150M Series C at $1.2B valuation, led by Prysm Capital and Eurazeo", "sourceUrl": "https://www.businesswire.com/news/home/20260804192350/en/HappyRobot-Raises-$150-Million-Series-C-to-Build-Enterprise-Superintelligence", "date": "2026-08-04", "primary": true },
+        { "claim": "We've raised $150M Series C", "sourceUrl": "https://www.happyrobot.ai/blog/happyrobot-seriesc-fundraising-announcement", "date": "2026-08-04", "primary": true },
+        { "claim": "Worth $1.2 billion; founder says it's just getting started", "sourceUrl": "https://fortune.com/2026/08/04/happyrobot-worth-1-2-billion-founder-says-just-getting-started/", "date": "2026-08-04", "primary": false },
+        { "claim": "Lands $150M Series C to scale agentic AI for enterprise operations", "sourceUrl": "https://tech.eu/2026/08/04/happyrobot-lands-150m-series-c-to-scale-agentic-ai-for-enterprise-operations/", "date": "2026-08-04", "primary": false }
+      ]
+    },
+    {
+      "domain": "anthropic.com",
+      "displayName": "Anthropic",
+      "description": "Frontier AI lab (Claude). Included as a high-signal source of target-title roles.",
+      "hq": "San Francisco, CA",
+      "foundedYear": 2021,
+      "category": "Frontier AI",
+      "status": "watching",
+      "ats": { "provider": "greenhouse", "slug": "anthropic" },
+      "judgments": { "customerTraction": 0.9, "productMomentum": 0.9 },
+      "roleWatches": ["solutions-engineer", "partnerships"],
+      "evidence": [
+        { "claim": "Anthropic careers — Applied AI / GTM / Partnerships roles open", "sourceUrl": "https://www.anthropic.com/careers", "date": "2026-08-08", "primary": true }
+      ]
+    }
+  ],
+  "review": [
+    {
+      "displayName": "June AI",
+      "reason": "no_domain",
+      "detail": "Real $20M pre-seed (TIME Ventures/Marc Benioff, 2026-08-03) but no publicly listed domain found — cannot set a canonical key without guessing (E4). Resolve domain, then promote to the watchlist as Notable-but-unproven.",
+      "evidence": [
+        { "claim": "June AI raises $20M pre-seed to automate enterprise AI deployment; led by Marc Benioff's TIME Ventures", "sourceUrl": "https://techcrunch.com/2026/08/03/a-marc-benioff-backed-startup-thinks-ai-can-solve-the-ai-deployment-problem/", "date": "2026-08-03", "primary": false },
+        { "claim": "June AI launches with $20M to automate enterprise software implementation", "sourceUrl": "https://www.citybiz.co/article/882895/june-ai-launches-with-20-million-to-automate-enterprise-software-implementation/", "date": "2026-08-03", "primary": false }
+      ]
+    }
+  ]
+}

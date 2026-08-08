@@ -132,6 +132,13 @@ export interface Company {
   priorOpenRolesCount?: number;
 
   score?: GrowthScore;
+  /** Score from the previous run, for digest deltas (▲/▼). */
+  priorScore?: number;
+
+  /** Judgment sub-scores (0..1) supplied by research/LLM/human — the components we
+   *  can't yet compute deterministically (E2: kept-manual). Persisted so re-scoring
+   *  is reproducible between runs. */
+  judgments?: { customerTraction?: number; productMomentum?: number };
 
   /** Role families to alert on even if not currently open (E1 role_watch). */
   roleWatches: TargetRole[];
