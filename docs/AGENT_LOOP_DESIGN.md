@@ -342,19 +342,22 @@ funding, roles-for-you). It gives a working daily loop end-to-end on the parts w
 1. **Data sources — free/public only.** WebSearch/WebFetch + public job-board
    APIs (Greenhouse/Lever/Ashby) + GitHub + RSS/news. $0. Enrichment adapters are
    designed so a paid API (Crunchbase/Harmonic) can drop in later if evals show gaps.
-2. **Delivery — email.** The daily digest is emailed each morning. (The Markdown
-   `digest-YYYY-MM-DD.md` is still written & committed as the *persisted record /
-   audit trail* in N10 — email is the delivery channel on top of it.)
+2. **Delivery — email (this project's own resources).** The daily digest is emailed
+   each morning to **wyliebrown1990@gmail.com** via **Resend**, using a Resend API key
+   held in *this* repo's own `.env` — never another project's credentials. (The
+   Markdown `digest-YYYY-MM-DD.md` is still written & committed as the *persisted
+   record / audit trail* in N10 — email is the delivery channel on top of it.)
 3. **Stack & runtime — TypeScript + bun** deterministic fetchers around a
    **scheduled Claude Code agent run**; state in a committed **SQLite/JSON** store.
 
-### Build sub-decisions still to settle (not blocking the graph)
-- **Email sending path:** reuse the existing verified SES domain
-  (`noreply@getamicai.com`) with a tiny standalone sender, or a simpler transactional
-  provider scoped to this project. To confirm at build time.
-- **Token budget per run:** set a concrete cap before first scheduled run.
-- **Schedule time:** what local hour the run fires (so the digest is waiting when
-  you wake up).
+### Build sub-decisions (resolved)
+- **Email sending path — Resend, project-scoped.** This project uses its **own**
+  Resend API key (`.env`), a project-verified sender, and always delivers to
+  `wyliebrown1990@gmail.com`. It does **not** reuse amicai/getamicai SES or any other
+  project's resources — separate project, separate secrets. Wired in `src/mailer.ts`.
+- **Schedule — 7:00 AM local** via a macOS launchd agent
+  (`deploy/com.ajr.daily.plist` → `scripts/run-daily.sh`). See `deploy/README.md`.
+- **Token budget per run:** still to set a concrete cap before wiring the LLM node.
 
 ## Eval run log
 

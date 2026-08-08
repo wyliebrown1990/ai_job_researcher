@@ -1,13 +1,15 @@
 // PERSIST & DELIVER (design N10). Writes the digest to disk (the committed record)
-// and returns the path. Email delivery is the last-mile TODO — the chosen channel —
-// wired here once the SES/provider sub-decision is made.
+// and emails it via this project's own Resend credentials (never another project's).
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { sendDigestEmail, emailConfigured } from "./mailer.ts";
+import { config } from "./config.ts";
 
 export interface DeliveryReceipt {
   path: string;
   emailed: boolean;
+  emailReason?: string;
 }
 
 export function writeDigest(markdown: string, runDate: string, dir = "digests"): string {
@@ -19,15 +21,22 @@ export function writeDigest(markdown: string, runDate: string, dir = "digests"):
   return path;
 }
 
-/** Email delivery placeholder (design: email is the delivery channel). */
-export async function emailDigest(_markdown: string, _runDate: string): Promise<boolean> {
-  // TODO: wire SES (noreply@getamicai.com) or a project-scoped transactional sender.
-  // Left unimplemented on purpose — sending is gated on the email-path sub-decision.
-  return false;
-}
-
-export async function deliver(markdown: string, runDate: string): Promise<DeliveryReceipt> {
+export async function deliver(
+  markdown: string,
+  runDate: string,
+  opts: { subject?: string } = {},
+): Promise<DeliveryReceipt> {
   const path = writeDigest(markdown, runDate);
-  const emailed = await emailDigest(markdown, runDate);
-  return { path, emailed };
+
+  if (!emailConfigured()) {
+    return { path, emailed: false, emailReason: "email not configured (see .env.example)" };
+  }
+  const subject = opts.subject ?? `AI Industry Digest — ${runDate}`;
+  const result = await sendDigestEmail(markdown, subject);
+  if (result.sent) {
+    console.log(`   📧 emailed digest to ${config.email.to}`);
+  } else {
+    console.log(`   ⚠ email not sent: ${result.reason}`);
+  }
+  return { path, emailed: result.sent, emailReason: result.reason };
 }

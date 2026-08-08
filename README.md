@@ -25,9 +25,11 @@ gates) lives in **[docs/AGENT_LOOP_DESIGN.md](docs/AGENT_LOOP_DESIGN.md)**.
 🚧 Early build. Design approved and validated against live data (5/5 eval cases pass).
 The deterministic core is implemented and unit-tested — ATS fetchers (Ashby /
 Greenhouse / Lever), domain-based dedup, funding-language classifier, title-first
-role matching, growth scoring + bucketing, and a SQLite state store. `bun run scan
-jobs <slug>` runs a live JOB SCAN today. Next: wire the LLM enrichment/discovery
-nodes and the daily schedule + email delivery. See [src/README.md](src/README.md).
+role matching, growth scoring + bucketing, and a SQLite state store. The full daily
+loop runs (`bun run scan run`), renders a digest, and **emails it via Resend** (this
+project's own key) to wyliebrown1990@gmail.com on a **7:00 AM launchd schedule** (see
+[deploy/](deploy/README.md)). Next: wire the LLM discovery/enrichment node so the
+watchlist grows itself. See [src/README.md](src/README.md).
 
 ## Stack
 

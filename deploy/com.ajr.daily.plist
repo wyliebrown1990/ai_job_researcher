@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- launchd agent: runs the AI industry research loop daily at 7:00 AM local.
+     Install:  cp deploy/com.ajr.daily.plist ~/Library/LaunchAgents/
+               launchctl load ~/Library/LaunchAgents/com.ajr.daily.plist
+     See deploy/README.md for full instructions. -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.ajr.daily</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/wyliebrown/ai_job_researcher/scripts/run-daily.sh</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/wyliebrown/ai_job_researcher</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>7</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/wyliebrown/ai_job_researcher/logs/launchd.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/wyliebrown/ai_job_researcher/logs/launchd.err.log</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>

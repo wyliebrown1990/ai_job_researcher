@@ -18,6 +18,9 @@ state/
 .DS_Store
 *.log
 
+# Runtime logs (launchd / daily runner)
+logs/
+
 # Scratch
 scratch/
 tmp/

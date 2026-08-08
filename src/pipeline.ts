@@ -69,7 +69,10 @@ export async function runDaily(
   const markdown = renderDigest({ runDate, companies: results, reviewItems, now });
 
   // PERSIST & DELIVER
-  const receipt = await deliver(markdown, runDate);
+  const movers = results.filter((cd) => cd.company.score?.bucket === "top-mover").length;
+  const matchCount = results.reduce((n, cd) => n + cd.matches.length, 0);
+  const subject = `AI Industry Digest — ${runDate} · ${movers} mover(s), ${matchCount} role(s)`;
+  const receipt = await deliver(markdown, runDate, { subject });
   const summary = `${results.length} scored, ${reviewItems.length} in review, ${fetchesUsed()} fetches`;
   store.finishRun(runDate, nowIso(), summary);
 

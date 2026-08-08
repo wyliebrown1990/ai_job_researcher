@@ -6,6 +6,7 @@
   "private": true,
   "scripts": {
     "scan": "bun run src/cli.ts",
+    "daily": "bash scripts/run-daily.sh",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },

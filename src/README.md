@@ -11,7 +11,8 @@ src/
   types.ts             # Company, JobPosting, FundingEvent, GrowthScore, ReviewItem, …
   pipeline.ts          # daily loop: ingest→refresh→job-scan→verify→rank→deliver
   digest.ts            # RANK & DIGEST — renders the daily markdown (N9)
-  deliver.ts           # PERSIST & DELIVER — writes digests/, email TODO (N10)
+  deliver.ts           # PERSIST & DELIVER — writes digests/ + emails via Resend (N10)
+  mailer.ts            # Resend send (this project's own key; graceful no-op if unset)
   seed.ts              # bootstrap watchlist + review items from data/seed.json
   db/db.ts             # bun:sqlite state store (idempotency, review queue)
   fetchers/
@@ -39,6 +40,14 @@ role matches) → score & bucket → verify the evidence gate → render
 
 **State & audit trail:** the human-readable record is `data/seed.json` + the committed
 `digests/`. The SQLite store under `state/` is a rebuildable local cache (gitignored).
+
+## Email + schedule
+
+Delivery uses **Resend** with **this project's own** API key (never another
+project's). Copy `.env.example` → `.env`, set `RESEND_API_KEY` + `AJR_EMAIL_FROM`
+(a Resend-verified sender); recipient defaults to `wyliebrown1990@gmail.com`. Without
+a key, runs still produce the digest file and skip email gracefully. The daily
+schedule (macOS launchd, 7:00 AM) lives in [`deploy/`](../deploy/README.md).
 
 ## What is deterministic vs LLM
 

@@ -78,6 +78,16 @@ export const config = {
 
   /** Seniority ceiling used to raise a fit_caveat on very senior roles (E3). */
   seniorityCaveatYears: 8,
+
+  /** Email delivery (this project's OWN resources — Resend API key in this repo's
+   *  .env, never another project's). Recipient is fixed to Wylie's inbox by default. */
+  email: {
+    to: process.env.AJR_EMAIL_TO ?? "wyliebrown1990@gmail.com",
+    /** Verified Resend sender, e.g. "AI Job Researcher <digest@yourdomain.com>". */
+    from: process.env.AJR_EMAIL_FROM ?? "",
+    /** Resend API key — this project's own key. Absent => email is skipped (file only). */
+    resendApiKey: process.env.RESEND_API_KEY ?? "",
+  },
 } as const;
 
 export type Config = typeof config;

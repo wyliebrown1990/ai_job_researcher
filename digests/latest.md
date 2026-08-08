@@ -15,14 +15,14 @@ _None new today._
 
 ## Top movers
 
-### HappyRobot — **82/100** ·NEW · conf high
+### HappyRobot — **82/100** · conf high
 Agentic AI platform automating enterprise logistics & supply-chain operations.
 - 💰 series c $150M @ $1.2B val — led by Prysm Capital, Eurazeo (2026-08-04)
 - 📈 81 open roles, 29 matching your target titles
 - 🔗 happyrobot.ai  
   ↳ [businesswire.com](https://www.businesswire.com/news/home/20260804192350/en/HappyRobot-Raises-$150-Million-Series-C-to-Build-Enterprise-Superintelligence) · [happyrobot.ai](https://www.happyrobot.ai/blog/happyrobot-seriesc-fundraising-announcement) · [fortune.com](https://fortune.com/2026/08/04/happyrobot-worth-1-2-billion-founder-says-just-getting-started/)
 
-### Anthropic — **66/100** ·NEW · conf high
+### Anthropic — **66/100** · conf high
 Frontier AI lab (Claude). Included as a high-signal source of target-title roles.
 - 📈 392 open roles, 42 matching your target titles
 - 🔗 anthropic.com  
