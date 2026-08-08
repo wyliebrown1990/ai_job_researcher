@@ -14,6 +14,8 @@ import { fetchesUsed } from "./fetchers/http.ts";
 import { Store } from "./db/db.ts";
 import { runDaily } from "./pipeline.ts";
 import { loadSeed } from "./seed.ts";
+import { discoverCandidates, discoveryConfigured } from "./discover.ts";
+import { ingestCandidates } from "./ingest.ts";
 
 function parseFlags(args: string[]): { positional: string[]; flags: Record<string, string> } {
   const positional: string[] = [];
@@ -81,8 +83,51 @@ function cmdSeed(path?: string) {
   store.close();
 }
 
-async function cmdRun(force: boolean) {
+/** Best-effort ATS resolution for a new company: try the domain and its first label. */
+async function resolveAts(store: Store, domains: string[]) {
+  for (const domain of domains) {
+    const candidates = [domain, domain.split(".")[0]!].filter(Boolean);
+    for (const slug of candidates) {
+      const found = await detectBoard(slug).catch(() => null);
+      if (found) {
+        const co = store.getCompany(domain);
+        if (co) { co.ats = found.ref; store.upsertCompany(co); }
+        break;
+      }
+    }
+  }
+}
+
+async function cmdDiscover() {
+  if (!discoveryConfigured()) {
+    console.log("Discovery needs ANTHROPIC_API_KEY (this project's own key) — see .env.example.");
+    return;
+  }
   const store = new Store();
+  console.log("🔎 Discovering fresh AI companies via web search…");
+  try {
+    const candidates = await discoverCandidates();
+    const summary = ingestCandidates(store, candidates);
+    await resolveAts(store, summary.newDomains);
+    console.log(`Ingested ${candidates.length} candidate(s): +${summary.added} new, ${summary.refreshed} refreshed, ${summary.reviewed} to review.`);
+  } catch (e) {
+    console.log(`⚠ discovery failed: ${(e as Error).message}`);
+  } finally {
+    store.close();
+  }
+}
+
+async function cmdRun(force: boolean, discover: boolean) {
+  const store = new Store();
+  if (discover && discoveryConfigured()) {
+    console.log("🔎 Discovering fresh companies first…");
+    const candidates = await discoverCandidates().catch((e) => { console.log(`   ⚠ discovery skipped: ${e.message}`); return []; });
+    if (candidates.length) {
+      const s = ingestCandidates(store, candidates);
+      await resolveAts(store, s.newDomains);
+      console.log(`   +${s.added} new, ${s.refreshed} refreshed, ${s.reviewed} to review`);
+    }
+  }
   const res = await runDaily(store, { force });
   if (res.skipped) {
     console.log(`Run for ${res.runDate} already completed (idempotent). Use --force to re-run.`);
@@ -100,11 +145,12 @@ async function main() {
     case "jobs": await cmdJobs(positional[0]!, flags.provider as AtsProvider | undefined); break;
     case "detect": await cmdDetect(positional[0]!); break;
     case "seed": cmdSeed(positional[0]); break;
-    case "run": await cmdRun(flags.force === "true" || "force" in flags); break;
+    case "discover": await cmdDiscover(); break;
+    case "run": await cmdRun("force" in flags, "discover" in flags); break;
     case "review": cmdReview(); break;
     case "list": cmdList(); break;
     default:
-      console.log("Usage: bun run scan <run|seed|jobs|detect|review|list> [slug] [--provider p] [--force]");
+      console.log("Usage: bun run scan <run|discover|seed|jobs|detect|review|list> [slug] [--provider p] [--force] [--discover]");
   }
 }
 

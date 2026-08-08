@@ -23,13 +23,15 @@ gates) lives in **[docs/AGENT_LOOP_DESIGN.md](docs/AGENT_LOOP_DESIGN.md)**.
 ## Status
 
 🚧 Early build. Design approved and validated against live data (5/5 eval cases pass).
-The deterministic core is implemented and unit-tested — ATS fetchers (Ashby /
+The full loop is wired end to end. The deterministic core — ATS fetchers (Ashby /
 Greenhouse / Lever), domain-based dedup, funding-language classifier, title-first
-role matching, growth scoring + bucketing, and a SQLite state store. The full daily
-loop runs (`bun run scan run`), renders a digest, and **emails it via Resend** (this
-project's own key) to wyliebrown1990@gmail.com on a **7:00 AM launchd schedule** (see
-[deploy/](deploy/README.md)). Next: wire the LLM discovery/enrichment node so the
-watchlist grows itself. See [src/README.md](src/README.md).
+role matching, growth scoring + bucketing, SQLite state — is implemented and
+unit-tested (33 tests). The **LLM DISCOVER node** (`scan discover`) uses Claude with
+web search to surface fresh companies, feeding a **pure ingest boundary** that applies
+the dedup/rumor/evidence rules before anything reaches the watchlist. The daily run
+(`scan run --discover`) discovers, refreshes, scores, renders a digest, and **emails
+it via Resend** (this project's own key) to wyliebrown1990@gmail.com on a **7:00 AM
+launchd schedule** (see [deploy/](deploy/README.md)). See [src/README.md](src/README.md).
 
 ## Stack
 

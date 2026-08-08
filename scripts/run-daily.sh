@@ -16,6 +16,8 @@ mkdir -p logs
 STAMP="$(date '+%Y-%m-%d %H:%M:%S')"
 {
   echo "===== $STAMP — daily run ====="
-  bun run scan run
+  # --discover finds fresh companies first (needs ANTHROPIC_API_KEY); it degrades
+  # gracefully to a watchlist-only run if the key is absent.
+  bun run scan run --discover
   echo
 } >> logs/daily.log 2>&1

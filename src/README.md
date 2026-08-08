@@ -10,6 +10,8 @@ src/
   config.ts            # budgets, staleness, target roles + exclusions, score weights
   types.ts             # Company, JobPosting, FundingEvent, GrowthScore, ReviewItem, …
   pipeline.ts          # daily loop: ingest→refresh→job-scan→verify→rank→deliver
+  discover.ts          # DISCOVER (N3) — Claude + web search → Candidate[] (LLM edge)
+  ingest.ts            # pure boundary: Candidate[] → watchlist/review (dedup, rumor gate)
   digest.ts            # RANK & DIGEST — renders the daily markdown (N9)
   deliver.ts           # PERSIST & DELIVER — writes digests/ + emails via Resend (N10)
   mailer.ts            # Resend send (this project's own key; graceful no-op if unset)
@@ -55,19 +57,23 @@ schedule (macOS launchd, 7:00 AM) lives in [`deploy/`](../deploy/README.md).
 language classification, title-first role matching, growth scoring + bucketing,
 SQLite persistence + run idempotency. These are the parts we can verify reliably.
 
-**Deferred to the LLM enrichment node (interfaces only for now):** DISCOVER breadth
-(surfacing candidates from funding news), semantic body-level role fit, customer-
-traction and product-momentum sub-scores, and digest prose. Kept manual/LLM because
-they can't yet be verified deterministically (design §"kept manual").
+**LLM edge (implemented, key-gated):** DISCOVER (`discover.ts`) — Claude with the
+server-side web-search tool surfaces fresh candidates; the **pure** `ingest.ts`
+boundary applies the deterministic rules before anything reaches the watchlist.
+
+**Still deferred to the LLM:** semantic body-level role fit and richer
+traction/product-momentum scoring (design §"kept manual").
 
 ## Run
 
 ```bash
 bun install
-bun test            # 24 unit tests across identity/funding/roleMatch/scoring/digest
+bun test            # 33 unit tests across identity/funding/roleMatch/scoring/digest/ingest
 bun run typecheck   # tsc --noEmit, strict
 bun run scan seed                            # bootstrap watchlist from data/seed.json
+bun run scan discover                        # LLM finds fresh companies (needs ANTHROPIC_API_KEY)
 bun run scan run                             # run the full daily loop → digests/
+bun run scan run --discover                  # discover fresh companies, then run
 bun run scan run --force                     # re-run same day (idempotency override)
 bun run scan jobs happyrobot.ai              # live JOB SCAN one board (auto-detect ATS)
 bun run scan jobs anthropic --provider greenhouse

@@ -152,6 +152,35 @@ export interface Company {
   sightings: number;
 }
 
+/** Raw candidate emitted by the LLM DISCOVER node, before deterministic ingest. */
+export interface Candidate {
+  displayName: string;
+  /** Company's own primary domain if the model could identify it (E4: no guessing). */
+  domain?: string;
+  description?: string;
+  category?: string;
+  hq?: string;
+  foundedYear?: number;
+  /** Funding as the model found it — the deterministic classifier decides event vs rumor (E5). */
+  funding?: {
+    /** The headline/phrasing, e.g. "raised $150M Series C" or "in talks to raise". */
+    claimText: string;
+    amountText?: string;
+    valuationText?: string;
+    stageText?: string;
+    leadInvestors?: string[];
+    otherInvestors?: string[];
+    announcedDate?: string; // ISO
+  };
+  /** Traction the model observed (for judgment sub-scores; aspirational claims flagged). */
+  namedCustomers?: string[];
+  /** Model's 0..1 estimate of traction/product momentum (kept-manual signals). */
+  judgments?: { customerTraction?: number; productMomentum?: number };
+  /** Dated sources backing the above (evidence hard-gate, C4). */
+  sources: { url: string; date?: string; primary?: boolean }[];
+  notes?: string;
+}
+
 /** An item that failed verification and needs human eyes (never silently dropped). */
 export interface ReviewItem {
   domain?: string;

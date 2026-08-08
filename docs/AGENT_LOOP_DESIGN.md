@@ -92,6 +92,11 @@ ENRICH & SCORE stage so scoring logic lives in one place.
 - **Tools:** WebSearch, WebFetch, RSS, YC/Product Hunt/HN sources, funding-news queries.
 - **Output:** `candidates[]` with {name, domain, why_surfaced, source_url, date}.
 - **Evidence:** each candidate has ≥1 dated source; dedup rate reported; count within cap.
+- **Implemented:** `src/discover.ts` (Claude + server-side web search → structured
+  `Candidate[]`, this project's own Anthropic key) → `src/ingest.ts` (**pure,
+  deterministic boundary** that applies the identity/rumor/evidence rules — the LLM
+  never writes to the watchlist directly). Runs via `scan discover` or `scan run
+  --discover`; degrades gracefully to a watchlist-only run without a key.
 - **Identity rule (from E4):** the canonical key is the **normalized primary domain**,
   never the display name (companies appear as "HappyRobot" / "Happyrobot Inc." /
   "happyrobot.ai"). Keep an `aliases[]` set; on a "new" candidate, resolve domain →
