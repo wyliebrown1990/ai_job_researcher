@@ -119,17 +119,56 @@ ENRICH & SCORE stage so scoring logic lives in one place.
 
 Confidence is lowered when signals are PR-only, undated, or single-sourced.
 
+**Funding event ≠ growth (from E2 — critical).** A dated round with a marquee cap
+table is a *funding event*, not proof of *quantifiable growth*. The two are scored
+and surfaced separately so a well-backed pre-seed can't masquerade as a grower:
+- **`funding_event`** — logged as a dated fact; always eligible for the digest's
+  Funding section regardless of growth score.
+- **`growth_score`** — measures *traction* (customers, hiring velocity, headcount
+  trend, revenue). A pre-seed with 4 people and one anecdotal customer scores **low**
+  here even if famous people invested.
+- **`stage` tag** (pre-seed → C+) contextualizes every score.
+- **Digest buckets:** **Top Movers** requires quantifiable growth. Companies that are
+  freshly/well-funded but traction-unproven go in a distinct **"Notable but unproven"**
+  bucket — visible, but never miscounted as growth.
+
+**Enrich before downgrading (from E2).** A thin *discovery* source ≠ a thin company.
+June AI showed "no metrics" on the aggregator listing but enrichment found a dated
+$20M round. Always run enrichment before concluding "no signal"; judge on enriched
+evidence, not on how sparse the discovery listing was.
+
+**Aspirational ≠ actual (from E2).** Forward-looking claims ("a customer pursuing 100
+agents", "targeting $X ARR") are goals, not metrics — routed to the review queue and
+never counted as traction.
+
 ### N6 — JOB SCAN (act)
 - **Context:** active watchlist companies + Wylie's target titles + seniority + locations.
-- **Tools:** Greenhouse/Lever/Ashby board APIs (primary — reliable JSON), company career pages, Google Jobs / Work-at-a-Startup / Wellfound (secondary).
-- **Output:** `matching_jobs[]` {company, title, url, location, posted_date, role_match_score}.
+- **Tools:** Greenhouse/Lever/Ashby board APIs (**primary source of truth — reliable JSON**), company career pages, Google Jobs / Work-at-a-Startup / Wellfound (secondary, discovery only — never for counts).
+- **Output:** `matching_jobs[]` {company, title, url, location, posted_date, role_match_score, **fit_caveat**}.
 - **Evidence:** each job has a live URL + posted date; match score explains why it fits SE/SolE/PM/Partner.
+- **Rule (from E1):** job **counts and role data come only from the company's ATS
+  JSON** — aggregators (Glassdoor/Scoutify) routinely inflate counts and must be
+  ignored, not averaged. Counting happens in the TS fetcher, never in the LLM.
+- **Rule (from E1) — `fit_caveat`:** title-match is not fit. Extract the JD's actual
+  skill demands and flag divergence from Wylie's GTM-lean profile (e.g. an FDE/SolE
+  title whose JD is heavy full-stack coding → "strong title match, confirm coding
+  depth"). Surface an honest signal; never auto-filter (apply decision is human-gated).
+- **`role_watch` primitive:** a company may carry a role-watch (e.g. "PM", "Partner").
+  When a future posting matches a watch, the next digest raises a callout — captures
+  cases like a company announcing GTM expansion before the roles are posted.
 
 ### N7 — VERIFY (gate)
 - **Context:** everything produced this run + the evidence hard-gate (C4).
 - **Tools:** LLM verifier + deterministic checks (URL reachable, date present, dedup key unique).
 - **Output:** per item `PASS | THIN | FAIL`.
 - **Evidence:** verification log; counts by verdict; zero PASS items with empty evidence.
+- **Source-authority rule (from E1):** when two sources disagree, the primary/structured
+  source wins (ATS JSON > aggregator; dated press release > blog rumor). Flag any
+  company where an aggregator's job count exceeds the ATS count by >2× — a signal the
+  aggregator is stale/inflated, not that the company is bigger.
+- **Deterministic-count rule (from E1):** all tallies (job counts, round amounts,
+  investor counts) are computed in code from structured data. The LLM reasons over
+  pre-counted values and never tallies items itself (it miscounts).
 
 ### N8 — RETRY / ESCALATE (feedback)
 - **Context:** THIN/FAIL items + why they failed.
@@ -143,8 +182,11 @@ Confidence is lowered when signals are PR-only, undated, or single-sourced.
 - **Output:** `digest-YYYY-MM-DD.md` with sections:
   1. **Industry pulse** — how the space moved (rounds closed, notable launches).
   2. **New entrants** — newly founded/funded, first time on the list.
-  3. **Top movers** — biggest Growth-Score changes vs prior run (▲/▼).
-  4. **Funding in last 24–48h** — round, amount, investors.
+  3. **Top movers** — biggest Growth-Score changes vs prior run (▲/▼). *Requires
+     quantifiable growth — not just a new round.*
+  4. **Funding in last 24–48h** — round, amount, investors, stage (every dated event).
+  4b. **Notable but unproven** — freshly/well-funded but traction-unproven (e.g.
+     marquee pre-seed). Visible, flagged Low growth-confidence, never in Top Movers.
   5. **Roles for you** — matching openings, ranked by company growth × role fit.
   6. **Watchlist changes** — promoted/archived + why.
   7. **Review queue** — items needing your eyes (thin evidence / decisions).
@@ -282,6 +324,15 @@ funding, roles-for-you). It gives a working daily loop end-to-end on the parts w
 - **Token budget per run:** set a concrete cap before first scheduled run.
 - **Schedule time:** what local hour the run fires (so the digest is waiting when
   you wake up).
+
+## Eval run log
+
+| Date | Case | Company | Result | Findings folded in |
+|------|------|---------|--------|--------------------|
+| 2026-08-08 | E1 (real growth, well-sourced) | HappyRobot | **PASS** — score 85, C4 gate held | (1) ATS-JSON is source of truth, ignore aggregator counts; (2) count in code not LLM; (3) `fit_caveat` on role matches; (4) `role_watch` primitive. See `docs/samples/e1-happyrobot.md`. |
+| 2026-08-08 | E2 (hype / thin metrics) | June AI | **PASS** — score 40, downgraded to Notable-but-unproven | (5) separate `funding_event` from `growth_score` + `stage` tag; (6) new "Notable but unproven" digest bucket; (7) enrich before downgrading; (8) aspirational ≠ actual (review queue). See `docs/samples/e2-june-ai.md`. |
+
+---
 
 ### MVP sequencing
 Automate bottleneck #9 first — **structured ingestion of funding + hiring-velocity
