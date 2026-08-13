@@ -45,7 +45,7 @@ export async function runDaily(
     // "New entrant" = recently founded, not merely first-scored (else every company
     // is a new entrant on run one).
     const isNew = c.foundedYear !== undefined && c.foundedYear >= now.getFullYear() - 1;
-    const { company, matches } = await enrichAndScore(c, { isNew, now, profile });
+    const { company, matches, jobs } = await enrichAndScore(c, { isNew, now, profile });
     // Growth remains visible on the company side, while the role queue honors the
     // minimum company signal threshold in the active personal search profile.
     const profileMatches = (company.score?.score ?? 0) >= profile.minCompanyScore ? matches : [];
@@ -76,6 +76,7 @@ export async function runDaily(
     }
 
     store.upsertCompany(company);
+    if (jobs.length) store.replaceCachedJobs(company.domain, jobs);
     store.writeSnapshot(company, runDate, visibleMatches.length);
     if (company.latestFunding) store.appendFundingEvent(company.domain, company.latestFunding);
     results.push({ company, matches: visibleMatches });

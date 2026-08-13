@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { Store } from "../src/db/db.ts";
-import type { Company, FundingEvent } from "../src/types.ts";
+import type { Company, FundingEvent, JobPosting } from "../src/types.ts";
 
 const stores: Store[] = [];
 
@@ -134,5 +134,18 @@ describe("Store personal signal foundation", () => {
     db.createApplication({ domain: "example.ai", externalId: "job-1", status: "researching", notes: "First" });
     db.createApplication({ domain: "example.ai", externalId: "job-2", status: "applied", notes: "Second" });
     expect(db.applications().map((application) => application.externalId)).toEqual(["job-2", "job-1"]);
+  });
+
+  test("replaces a company's raw current ATS cache without touching another company", () => {
+    const db = store();
+    const first: JobPosting = {
+      externalId: "job-1", title: "Product Manager", location: "New York",
+      url: "https://example.ai/jobs/1", retrievedAt: "2026-08-13T10:00:00Z",
+    };
+    db.replaceCachedJobs("example.ai", [first]);
+    db.replaceCachedJobs("other.ai", [{ ...first, externalId: "other-job", url: "https://other.ai/jobs/1" }]);
+    db.replaceCachedJobs("example.ai", [{ ...first, externalId: "job-2", title: "Solutions Engineer" }]);
+    expect(db.cachedJobs("example.ai").map((job) => job.externalId)).toEqual(["job-2"]);
+    expect(db.cachedJobs("other.ai").map((job) => job.externalId)).toEqual(["other-job"]);
   });
 });

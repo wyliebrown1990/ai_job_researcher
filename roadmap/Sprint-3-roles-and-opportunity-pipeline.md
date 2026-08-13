@@ -29,7 +29,7 @@ email automation, and a full CRM.
 
 ### Roles workspace
 
-- [ ] Build a **Roles** screen with compact role cards/rows: company, role family,
+- [x] Build a **Roles** screen with compact role cards/rows: company, role family,
   location/remote flag, posted date, company growth signal, fit caveat, and direct
   apply link.
 - [x] Make the first decisions one-click: Save, Hide, and Add to pipeline. Confirm the
@@ -45,7 +45,7 @@ email automation, and a full CRM.
   applied, interviewing, closed. Keep these statuses local and editable.
 - [x] Show the exact role, company, applied date, latest notes, and next action—not a
   generic company card.
-- [ ] Add inline status, notes, and next-action editing with clear save/error feedback.
+- [x] Add inline status, notes, and next-action editing with clear save/error feedback.
 - [x] Surface next actions due or overdue at the top of Today in the next dashboard
   refresh; do not introduce system notifications yet.
 
@@ -55,7 +55,7 @@ email automation, and a full CRM.
   while continuing to scan and display other matches from the same company.
 - [x] Add a small “saved roles / next actions” digest section only when there is a
   meaningful change or due action. Keep the daily email scannable.
-- [ ] Preserve the raw current ATS match list in the database response so a changed
+- [x] Preserve the raw current ATS match list in the database response so a changed
   profile or unhidden role can be reevaluated without stale UI-only data.
 
 ## Browser Testing & Validation (agent-browser CLI)
@@ -82,11 +82,11 @@ email automation, and a full CRM.
 
 ## Acceptance Criteria
 
-- [ ] Roles can be filtered to a small, credible, personally relevant queue.
-- [ ] Save/hide/apply actions are stable role-level records and survive server restarts.
-- [ ] Pipeline entries retain useful context and next actions without introducing CRM scope.
-- [ ] The digest and Today honor role-level user intent without hiding other company roles.
-- [ ] Browser validation covers filters, mutation persistence, and the same-company edge case.
+- [x] Roles can be filtered to a small, credible, personally relevant queue.
+- [x] Save/hide/apply actions are stable role-level records and survive server restarts.
+- [x] Pipeline entries retain useful context and next actions without introducing CRM scope.
+- [x] The digest and Today honor role-level user intent without hiding other company roles.
+- [x] Browser validation covers filters, mutation persistence, and the same-company edge case.
 
 ## Notes for Future Developers
 
@@ -105,5 +105,6 @@ email automation, and a full CRM.
 - A HappyRobot FDE was saved, added to Pipeline, moved to Applied with a due action, and
   surfaced in Today. A second HappyRobot role remained visible. Temporary records were
   restored after validation; final SQLite checks show zero application rows and false flags.
-- Remaining Sprint 3 work: posted-date metadata on role cards, explicit inline mutation
-  error feedback, and retaining raw current ATS matches for profile reevaluation.
+- Final closure: posted-date metadata was verified in `/tmp/ajr-s3-posted-dates.png`;
+  current daily scans cache raw ATS postings in SQLite; browser mutation failures now
+  show a retry toast. The final verification run passed 52 tests with 0 failures.

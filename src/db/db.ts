@@ -10,6 +10,7 @@ import type {
   ApplicationStatus,
   Company,
   FundingEvent,
+  JobPosting,
   ReviewItem,
   RoleState,
   SearchProfile,
@@ -109,6 +110,15 @@ CREATE TABLE IF NOT EXISTS applications (
   UNIQUE(domain, external_id)
 );
 CREATE INDEX IF NOT EXISTS idx_applications_status_next_action ON applications(status, next_action_at);
+
+CREATE TABLE IF NOT EXISTS role_cache (
+  domain       TEXT NOT NULL,
+  external_id  TEXT NOT NULL,
+  data         TEXT NOT NULL,
+  retrieved_at TEXT NOT NULL,
+  PRIMARY KEY (domain, external_id)
+);
+CREATE INDEX IF NOT EXISTS idx_role_cache_domain ON role_cache(domain);
 `;
 
 type CompanyRow = { data: string; pinned: number; notes: string | null };
@@ -382,6 +392,23 @@ export class Store {
     return this.db.query<{ domain: string; external_id: string }, []>(
       "SELECT domain, external_id FROM applications ORDER BY updated_at DESC, id DESC",
     ).all().map((row) => this.applicationFor(row.domain, row.external_id)!);
+  }
+
+  replaceCachedJobs(domain: string, jobs: JobPosting[]): void {
+    const write = this.db.transaction(() => {
+      this.db.query("DELETE FROM role_cache WHERE domain = ?").run(domain);
+      const insert = this.db.query(
+        "INSERT INTO role_cache (domain, external_id, data, retrieved_at) VALUES (?, ?, ?, ?)",
+      );
+      for (const job of jobs) insert.run(domain, job.externalId, JSON.stringify(job), job.retrievedAt);
+    });
+    write();
+  }
+
+  cachedJobs(domain: string): JobPosting[] {
+    return this.db.query<{ data: string }, [string]>(
+      "SELECT data FROM role_cache WHERE domain = ? ORDER BY retrieved_at DESC, external_id",
+    ).all(domain).map((row) => JSON.parse(row.data) as JobPosting);
   }
 
   addReviewItem(item: ReviewItem): void {

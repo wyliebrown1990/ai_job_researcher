@@ -111,7 +111,8 @@ async function collectRoles(store: Store): Promise<RoleEntry[]> {
   const batches = await Promise.all(companies.map(async (company) => {
     if (!company.ats) return [] as RoleEntry[];
     try {
-      return matchBoard(await fetchBoard(company.ats), profile).map((match) => ({
+      const jobs = store.cachedJobs(company.domain);
+      return matchBoard(jobs.length ? jobs : await fetchBoard(company.ats), profile).map((match) => ({
         domain: company.domain,
         displayName: company.displayName,
         category: company.category,
