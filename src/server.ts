@@ -95,6 +95,13 @@ type RoleEntry = {
   state: ReturnType<Store["getRoleState"]>;
 };
 
+function roleSeniority(role: RoleEntry): "entry" | "mid" | "senior" {
+  const title = role.job.title.toLowerCase();
+  if (/\b(intern|junior|associate|new grad)\b/.test(title)) return "entry";
+  if (/\b(senior|staff|principal|lead|director|head|vice president|\bvp\b)\b/.test(title)) return "senior";
+  return "mid";
+}
+
 async function collectRoles(store: Store): Promise<RoleEntry[]> {
   const profile = store.getSearchProfile();
   const companies = store.allCompanies().filter((company) =>
@@ -209,10 +216,26 @@ export function createDashboardHandler(store: Store): (request: Request) => Resp
       let roles = await collectRoles(store);
       const family = url.searchParams.get("family");
       const remote = url.searchParams.get("remote");
-      const include = url.searchParams.get("include") === "true";
+      const location = url.searchParams.get("location")?.trim().toLowerCase();
+      const seniority = url.searchParams.get("seniority");
+      const sector = url.searchParams.get("sector")?.trim().toLowerCase();
+      const minimumScore = Number(url.searchParams.get("minScore"));
+      const includeRaw = url.searchParams.get("include") ?? "";
+      const included = new Set((includeRaw === "true" ? "applied,hidden" : includeRaw).split(",").filter(Boolean));
       if (family) roles = roles.filter((role) => role.role === family);
       if (remote === "true") roles = roles.filter((role) => role.job.isRemote);
-      if (!include) roles = roles.filter((role) => !role.state?.hidden && !role.state?.applied);
+      if (location) roles = roles.filter((role) => role.job.location.toLowerCase().includes(location));
+      if (seniority === "entry" || seniority === "mid" || seniority === "senior") {
+        roles = roles.filter((role) => roleSeniority(role) === seniority);
+      }
+      if (sector) roles = roles.filter((role) => role.category?.toLowerCase().includes(sector));
+      if (Number.isFinite(minimumScore) && minimumScore > 0) {
+        roles = roles.filter((role) => role.score >= minimumScore);
+      }
+      roles = roles.filter((role) =>
+        (included.has("hidden") || !role.state?.hidden)
+        && (included.has("applied") || !role.state?.applied),
+      );
       return json({ roles });
     }
 
@@ -238,6 +261,13 @@ export function createDashboardHandler(store: Store): (request: Request) => Resp
     }
 
     const applicationMatch = /^\/api\/roles\/([^/]+)\/([^/]+)\/application$/.exec(pathname);
+    if (request.method === "DELETE" && applicationMatch) {
+      const domain = decodeURIComponent(applicationMatch[1]!);
+      const externalId = decodeURIComponent(applicationMatch[2]!);
+      return store.deleteApplication(domain, externalId)
+        ? json({ deleted: true })
+        : json({ error: "Application not found." }, 404);
+    }
     if (["POST", "PATCH"].includes(request.method) && applicationMatch) {
       const domain = decodeURIComponent(applicationMatch[1]!);
       if (!store.getCompany(domain)) return json({ error: "Company not found." }, 404);

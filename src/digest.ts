@@ -2,7 +2,7 @@
 // Sections mirror the design: pulse, new entrants, top movers, funding, notable-but-
 // unproven, roles-for-you, review queue. Every surfaced entry carries dated evidence.
 
-import type { Company, RoleMatch, ReviewItem, FundingEvent } from "./types.ts";
+import type { Application, Company, RoleMatch, ReviewItem, FundingEvent } from "./types.ts";
 import { config } from "./config.ts";
 
 export interface CompanyDigest {
@@ -13,6 +13,8 @@ export interface DigestInput {
   runDate: string; // YYYY-MM-DD
   companies: CompanyDigest[];
   reviewItems: ReviewItem[];
+  savedRoles?: { company: Company; match: RoleMatch }[];
+  dueActions?: Application[];
   now: Date;
 }
 
@@ -102,8 +104,24 @@ function section(title: string, blocks: string[], emptyMsg: string): string {
   return `## ${title}\n\n${body}\n`;
 }
 
+function savedRolesAndActions(
+  savedRoles: { company: Company; match: RoleMatch }[],
+  dueActions: Application[],
+): string {
+  const lines = [
+    ...savedRoles.map(({ company, match }) =>
+      "- Saved: [" + match.job.title + "](" + match.job.url + ") at **" + company.displayName + "**",
+    ),
+    ...dueActions.map((application) =>
+      "- Due " + application.nextActionAt + ": **" + application.domain + "** · " + application.status
+        + (application.notes ? " — " + application.notes : ""),
+    ),
+  ];
+  return lines.length ? "## Saved roles & due actions\n\n" + lines.join("\n") + "\n" : "";
+}
+
 export function renderDigest(input: DigestInput): string {
-  const { companies, reviewItems, now, runDate } = input;
+  const { companies, reviewItems, now, runDate, savedRoles = [], dueActions = [] } = input;
   const byBucket = (b: string) => companies.filter((cd) => cd.company.score?.bucket === b);
 
   const topMovers = byBucket("top-mover").sort((a, b) => (b.company.score?.score ?? 0) - (a.company.score?.score ?? 0));
@@ -141,6 +159,7 @@ export function renderDigest(input: DigestInput): string {
       "None — funded-but-unproven companies appear here, never as top movers (E2)."),
     section("Following", following.map(companyBlock), "No followed companies yet — pin a company in the dashboard to track it closely."),
     `## Roles for you\n\n${rolesForYou(companies)}`,
+    savedRolesAndActions(savedRoles, dueActions),
     section("Review queue", reviewItems.map((r) => `- **[${r.reason}]** ${r.displayName} — ${r.detail}`),
       "Empty — nothing needs your review."),
     `---`,

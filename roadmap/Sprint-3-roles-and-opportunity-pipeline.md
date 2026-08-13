@@ -15,16 +15,16 @@ email automation, and a full CRM.
 
 ### Role and pipeline API
 
-- [ ] Add `GET /api/roles` aggregating current profile-compatible matches across the
+- [x] Add `GET /api/roles` aggregating current profile-compatible matches across the
   watchlist. Rank by company growth and role-fit signal; keep `fit_caveat` visible.
-- [ ] Support filters for role family, seniority, location, remote, sector, company
+- [x] Support filters for role family, seniority, location, remote, sector, company
   score, saved/applied state, and hidden roles. Preserve query state in the URL where
   inexpensive to do so.
-- [ ] Add validated role-state mutations for save, hide/unhide, and applied. Key all
+- [x] Add validated role-state mutations for save, hide/unhide, and applied. Key all
   state by `domain + externalId`, and make repeated writes idempotent.
-- [ ] Add `GET /api/applications` and create/update routes for application status,
+- [x] Add `GET /api/applications` and create/update routes for application status,
   notes, and a next-action date. Accept only bounded, expected fields.
-- [ ] Ensure a role’s applied state never changes the company’s `status`; a company may
+- [x] Ensure a role’s applied state never changes the company’s `status`; a company may
   have several independently tracked roles.
 
 ### Roles workspace
@@ -32,28 +32,28 @@ email automation, and a full CRM.
 - [ ] Build a **Roles** screen with compact role cards/rows: company, role family,
   location/remote flag, posted date, company growth signal, fit caveat, and direct
   apply link.
-- [ ] Make the first decisions one-click: Save, Hide, and Add to pipeline. Confirm the
+- [x] Make the first decisions one-click: Save, Hide, and Add to pipeline. Confirm the
   saved state after each mutation rather than relying solely on optimistic UI.
-- [ ] Provide useful empty states for restrictive profile filters, no current matches,
+- [x] Provide useful empty states for restrictive profile filters, no current matches,
   and all roles hidden/applied.
-- [ ] Default to live, unapplied, unhidden roles. Let the user intentionally include
+- [x] Default to live, unapplied, unhidden roles. Let the user intentionally include
   saved/applied/hidden records for review.
 
 ### Opportunity pipeline
 
-- [ ] Build a **Pipeline** view grouped by simple statuses: researching, networking,
+- [x] Build a **Pipeline** view grouped by simple statuses: researching, networking,
   applied, interviewing, closed. Keep these statuses local and editable.
-- [ ] Show the exact role, company, applied date, latest notes, and next action—not a
+- [x] Show the exact role, company, applied date, latest notes, and next action—not a
   generic company card.
 - [ ] Add inline status, notes, and next-action editing with clear save/error feedback.
-- [ ] Surface next actions due or overdue at the top of Today in the next dashboard
+- [x] Surface next actions due or overdue at the top of Today in the next dashboard
   refresh; do not introduce system notifications yet.
 
 ### Daily-loop feedback
 
-- [ ] Exclude hidden and applied individual roles from the default digest role section
+- [x] Exclude hidden and applied individual roles from the default digest role section
   while continuing to scan and display other matches from the same company.
-- [ ] Add a small “saved roles / next actions” digest section only when there is a
+- [x] Add a small “saved roles / next actions” digest section only when there is a
   meaningful change or due action. Keep the daily email scannable.
 - [ ] Preserve the raw current ATS match list in the database response so a changed
   profile or unhidden role can be reevaluated without stale UI-only data.
@@ -63,21 +63,21 @@ email automation, and a full CRM.
 > **MANDATORY**: Use agent-browser CLI to manually test all web features. Do NOT mark
 > web-related tasks complete without performing browser validation.
 
-- [ ] Open `http://127.0.0.1:3000`, navigate to Roles, and take an initial screenshot.
-- [ ] Run `agent-browser snapshot -i`; apply at least one role and location/remote
+- [x] Open `http://127.0.0.1:3000`, navigate to Roles, and take an initial screenshot.
+- [x] Run `agent-browser snapshot -i`; apply at least one role and location/remote
   filter, then confirm the results and empty state are intelligible.
-- [ ] Save, hide, and add a real role to the pipeline using interactive element refs;
+- [x] Save, hide, and add a real role to the pipeline using interactive element refs;
   reload to confirm persistence and capture screenshots.
-- [ ] Inspect `state/ajr.db` to verify the `role_state` and `applications` rows match
+- [x] Inspect `state/ajr.db` to verify the `role_state` and `applications` rows match
   the UI actions.
-- [ ] Confirm applying one role does not remove a second matching role at the same
+- [x] Confirm applying one role does not remove a second matching role at the same
   company from the default Roles view.
-- [ ] Edit a next action, verify its Today appearance, and capture a final screenshot.
-- [ ] Document screenshots and any issues in this file before requesting human review.
+- [x] Edit a next action, verify its Today appearance, and capture a final screenshot.
+- [x] Document screenshots and any issues in this file before requesting human review.
 
 ## Infrastructure and Cost Constraints
 
-- [ ] Use existing local SQLite and localhost server only; do not add a hosted task
+- [x] Use existing local SQLite and localhost server only; do not add a hosted task
   manager, CRM, background worker, or paid integration.
 
 ## Acceptance Criteria
@@ -94,3 +94,16 @@ email automation, and a full CRM.
   even if a later UI offers a convenient company-level research label.
 - Do not scrape job descriptions beyond existing ATS fetches just to enrich cards;
   keep the role list fast and evidence-backed.
+
+## Validation Evidence
+
+- 2026-08-13: `bun run typecheck && bun test` passed: 51 tests, 0 failures.
+- Browser validation used `http://127.0.0.1:3012` (the same localhost app on an alternate
+  port because existing local previews occupied 3000). Captures: `/tmp/ajr-s3-roles-loaded.png`,
+  `/tmp/ajr-s3-role-filters.png`, `/tmp/ajr-s3-role-actions.png`,
+  `/tmp/ajr-s3-pipeline-next-action.png`, and `/tmp/ajr-s3-today-next-actions.png`.
+- A HappyRobot FDE was saved, added to Pipeline, moved to Applied with a due action, and
+  surfaced in Today. A second HappyRobot role remained visible. Temporary records were
+  restored after validation; final SQLite checks show zero application rows and false flags.
+- Remaining Sprint 3 work: posted-date metadata on role cards, explicit inline mutation
+  error feedback, and retaining raw current ATS matches for profile reevaluation.

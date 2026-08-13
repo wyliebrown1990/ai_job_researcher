@@ -9,7 +9,7 @@ import { renderDigest, type CompanyDigest } from "./digest.ts";
 import { deliver } from "./deliver.ts";
 import { resetFetchBudget, fetchesUsed, nowIso } from "./fetchers/http.ts";
 import { config } from "./config.ts";
-import type { ReviewItem } from "./types.ts";
+import type { ReviewItem, RoleMatch } from "./types.ts";
 
 export interface RunResult {
   skipped: boolean;
@@ -39,6 +39,7 @@ export async function runDaily(
     .slice(0, config.limits.maxRefreshPerDay);
 
   const results: CompanyDigest[] = [];
+  const savedRoles: { company: CompanyDigest["company"]; match: RoleMatch }[] = [];
   const profile = store.getSearchProfile();
   for (const c of watchlist) {
     // "New entrant" = recently founded, not merely first-scored (else every company
@@ -54,6 +55,10 @@ export async function runDaily(
       const state = store.getRoleState(company.domain, match.job.externalId);
       return !state?.hidden && !state?.applied;
     });
+    for (const match of matches) {
+      const state = store.getRoleState(company.domain, match.job.externalId);
+      if (state?.saved && state.updatedAt.slice(0, 10) === runDate) savedRoles.push({ company, match });
+    }
 
     // VERIFY — evidence hard-gate (C4): a company with no dated source evidence and
     // no live job signal can't be trusted in the main digest → review queue.
@@ -78,7 +83,12 @@ export async function runDaily(
 
   // RANK & DIGEST
   const reviewItems = store.openReviewItems();
-  const markdown = renderDigest({ runDate, companies: results, reviewItems, now });
+  const dueActions = store.applications().filter((application) =>
+    application.status !== "closed"
+    && application.nextActionAt !== undefined
+    && application.nextActionAt <= runDate,
+  );
+  const markdown = renderDigest({ runDate, companies: results, reviewItems, savedRoles, dueActions, now });
 
   // PERSIST & DELIVER
   const movers = results.filter((cd) => cd.company.score?.bucket === "top-mover").length;

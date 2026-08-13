@@ -69,6 +69,20 @@ describe("local dashboard API", () => {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "researching", notes: "Review the deployment work." }),
     }));
     expect(await application.json()).toMatchObject({ status: "researching", notes: "Review the deployment work." });
+
+    const update = await handler(new Request("http://local/api/roles/example.ai/job-1/application", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "networking", nextActionAt: "2026-08-20" }),
+    }));
+    expect(await update.json()).toMatchObject({ status: "networking", nextActionAt: "2026-08-20" });
+
+    const today = await handler(new Request("http://local/api/today"));
+    expect(await today.json()).toMatchObject({
+      nextActions: [{ domain: "example.ai", externalId: "job-1", company: "Example AI", nextActionAt: "2026-08-20" }],
+    });
+
+    const deleted = await handler(new Request("http://local/api/roles/example.ai/job-1/application", { method: "DELETE" }));
+    expect(await deleted.json()).toEqual({ deleted: true });
   });
 
   test("dismisses or promotes review items only with a valid domain", async () => {

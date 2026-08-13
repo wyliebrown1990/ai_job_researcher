@@ -357,6 +357,12 @@ export class Store {
     });
   }
 
+  deleteApplication(domain: string, externalId: string): boolean {
+    return this.db.query(
+      "DELETE FROM applications WHERE domain = ? AND external_id = ?",
+    ).run(domain, externalId).changes > 0;
+  }
+
   applicationFor(domain: string, externalId: string): Application | null {
     const row = this.db.query<{
       id: number; domain: string; external_id: string; status: ApplicationStatus; notes: string;

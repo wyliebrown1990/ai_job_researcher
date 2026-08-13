@@ -68,4 +68,19 @@ describe("renderDigest", () => {
       expect(md).toContain(h);
     }
   });
+
+  test("only adds the saved roles and due actions section when there is work to surface", () => {
+    const match = {
+      role: "product-manager" as const, matchScore: 1, matchedOn: ["title" as const],
+      job: { externalId: "pm-1", title: "Product Manager", location: "New York", url: "https://example.com/jobs/pm-1", retrievedAt: NOW.toISOString() },
+    };
+    const md = renderDigest({
+      runDate: "2026-08-08", companies: [], reviewItems: [], now: NOW,
+      savedRoles: [{ company: company({}), match }],
+      dueActions: [{ id: 1, domain: "example.com", externalId: "pm-2", status: "networking", notes: "Send a concise follow-up.", nextActionAt: "2026-08-08", createdAt: NOW.toISOString(), updatedAt: NOW.toISOString() }],
+    });
+    expect(md).toContain("## Saved roles & due actions");
+    expect(md).toContain("Saved: [Product Manager]");
+    expect(md).toContain("Due 2026-08-08");
+  });
 });
