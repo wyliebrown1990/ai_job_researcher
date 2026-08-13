@@ -32,7 +32,7 @@ pleasant to return to every day.
   guess a canonical domain.
 - [x] Build a **Research** archive that lists prior committed digests and renders a
   selected day locally.
-- [ ] Add concise links from digest/company history to relevant archived reports when
+- [x] Add concise links from digest/company history to relevant archived reports when
   the source exists, without duplicating the full digest content into SQLite.
 - [x] Retain explicit empty states for an empty review queue and a fresh installation
   with no archive.
@@ -100,6 +100,7 @@ pleasant to return to every day.
 - 2026-08-13: `bun run typecheck && bun test` passed: 54 tests, 0 failures.
 - Research and Review screenshots: `/tmp/ajr-research.png`, `/tmp/ajr-review.png`,
   `/tmp/ajr-s4-review-grouped.png`, and `/tmp/ajr-s4-review-actions.png`.
+  Company-to-archive link: `/tmp/ajr-s4-company-archive-link.png`.
   Manual company add and product-help screenshots: `/tmp/ajr-s4-manual-company.png`
   and `/tmp/ajr-s4-how-it-works.png`.
 - The manual company validation used a disposable `qa-sprint4.invalid` record, then
