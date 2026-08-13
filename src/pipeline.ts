@@ -9,7 +9,7 @@ import { renderDigest, type CompanyDigest } from "./digest.ts";
 import { deliver } from "./deliver.ts";
 import { resetFetchBudget, fetchesUsed, nowIso } from "./fetchers/http.ts";
 import { config } from "./config.ts";
-import type { ReviewItem, RoleMatch } from "./types.ts";
+import type { Company, ReviewItem, RoleMatch } from "./types.ts";
 
 export interface RunResult {
   skipped: boolean;
@@ -18,6 +18,15 @@ export interface RunResult {
   emailed?: boolean;
   companiesScored?: number;
   fetches?: number;
+}
+
+/** Pins are intentional research: refresh them before passive watchlist entries. */
+export function selectDailyWatchlist(companies: Company[]): Company[] {
+  return companies
+    .filter((company) => company.status !== "archived")
+    .sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned))
+    || a.lastUpdated.localeCompare(b.lastUpdated))
+    .slice(0, config.limits.maxRefreshPerDay);
 }
 
 export async function runDaily(
@@ -33,10 +42,8 @@ export async function runDaily(
     return { skipped: true, runDate };
   }
 
-  // PLAN: refresh the whole active watchlist (bounded by the daily cap).
-  const watchlist = store.allCompanies()
-    .filter((c) => c.status !== "archived")
-    .slice(0, config.limits.maxRefreshPerDay);
+  // PLAN: refresh active companies, with intentional follows protected by the cap.
+  const watchlist = selectDailyWatchlist(store.allCompanies());
 
   const results: CompanyDigest[] = [];
   const savedRoles: { company: CompanyDigest["company"]; match: RoleMatch }[] = [];

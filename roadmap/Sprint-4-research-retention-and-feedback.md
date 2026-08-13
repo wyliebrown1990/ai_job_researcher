@@ -15,7 +15,7 @@ pleasant to return to every day.
 
 ### Followed-company feedback
 
-- [ ] Make pinned companies bypass the normal staleness window, receive a refresh on
+- [x] Make pinned companies bypass the normal staleness window, receive a refresh on
   each daily run within the existing fetch budget, and never auto-archive.
 - [x] Add a concise “Following” digest section containing material score, funding,
   hiring, or target-role changes for pinned companies.
@@ -97,7 +97,7 @@ pleasant to return to every day.
 
 ## Validation Evidence
 
-- 2026-08-13: `bun run typecheck && bun test` passed: 54 tests, 0 failures.
+- 2026-08-13: `bun run typecheck && bun test` passed: 55 tests, 0 failures.
 - Research and Review screenshots: `/tmp/ajr-research.png`, `/tmp/ajr-review.png`,
   `/tmp/ajr-s4-review-grouped.png`, and `/tmp/ajr-s4-review-actions.png`.
   Company-to-archive link: `/tmp/ajr-s4-company-archive-link.png`.
@@ -110,3 +110,5 @@ pleasant to return to every day.
   exact test rows were removed afterward.
 - Following digest regression coverage verifies unchanged pinned companies are omitted;
   the local server remains bound to `127.0.0.1` with no new services provisioned.
+- Daily-plan regression coverage verifies followed companies are placed ahead of passive
+  entries when the existing refresh cap applies; archived entries are never selected.
