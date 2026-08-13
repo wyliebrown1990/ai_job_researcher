@@ -75,6 +75,7 @@ bun run scan discover                        # LLM finds fresh companies (needs 
 bun run scan run                             # run the full daily loop → digests/
 bun run scan run --discover                  # discover fresh companies, then run
 bun run scan run --force                     # re-run same day (idempotency override)
+bun run scan serve                           # local dashboard at http://127.0.0.1:3000
 bun run scan jobs happyrobot.ai              # live JOB SCAN one board (auto-detect ATS)
 bun run scan jobs anthropic --provider greenhouse
 bun run scan detect <slug>                   # which ATS a slug uses
@@ -86,3 +87,7 @@ bun run scan review                          # review queue
 
 All tunable behavior — budgets, staleness windows, score weights, bucket thresholds,
 target-role forms, and the title exclusion list — lives in `config.ts`.
+
+The dashboard persists personal filters in SQLite's `search_profile` record, which
+overrides these defaults for subsequent scans. Back up `state/ajr.db` before resetting
+local state or moving machines.

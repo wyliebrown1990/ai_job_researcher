@@ -70,4 +70,16 @@ describe("local dashboard API", () => {
     }));
     expect(await application.json()).toMatchObject({ status: "researching", notes: "Review the deployment work." });
   });
+
+  test("dismisses or promotes review items only with a valid domain", async () => {
+    const { store, handler } = setup();
+    store.addReviewItem({ displayName: "Candidate", reason: "no_domain", detail: "Needs identity.", evidence: [], createdAt: "2026-08-13T00:00:00Z" });
+    const review = await handler(new Request("http://local/api/review"));
+    const item = (await review.json() as { items: { id: number }[] }).items[0]!;
+
+    const promoted = await handler(new Request(`http://local/api/review/${item.id}/resolve`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "promote", domain: "candidate.ai" }),
+    }));
+    expect(await promoted.json()).toMatchObject({ resolved: true, company: { domain: "candidate.ai", pinned: true } });
+  });
 });

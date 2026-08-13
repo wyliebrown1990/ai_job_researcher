@@ -391,6 +391,16 @@ export class Store {
     ).all().map((r) => JSON.parse(r.data) as ReviewItem);
   }
 
+  openReviewRows(): { id: number; item: ReviewItem }[] {
+    return this.db.query<{ id: number; data: string }, []>(
+      "SELECT id, data FROM review_queue WHERE resolved = 0 ORDER BY created_at DESC",
+    ).all().map((row) => ({ id: row.id, item: JSON.parse(row.data) as ReviewItem }));
+  }
+
+  resolveReviewItem(id: number): boolean {
+    return this.db.query("UPDATE review_queue SET resolved = 1 WHERE id = ? AND resolved = 0").run(id).changes > 0;
+  }
+
   /** Idempotency (design §6): returns false if a run already completed today. */
   beginRun(runDate: string, startedAt: string): boolean {
     const existing = this.db.query<{ finished_at: string | null }, [string]>(

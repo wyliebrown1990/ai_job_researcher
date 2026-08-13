@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { Store } from "./db/db.ts";
 import { fetchBoard } from "./fetchers/ats/index.ts";
 import { matchBoard } from "./lib/roleMatch.ts";
+import { companyKey } from "./lib/identity.ts";
 import { renderDashboard } from "./dashboard.ts";
 import type { Company, RoleMatch, SearchProfile, TargetRole } from "./types.ts";
 
@@ -173,6 +174,31 @@ export function createDashboardHandler(store: Store): (request: Request) => Resp
     }
 
     if (request.method === "GET" && pathname === "/api/profile") return json(store.getSearchProfile());
+
+    if (request.method === "GET" && pathname === "/api/review") return json({ items: store.openReviewRows() });
+
+    const reviewMatch = /^\/api\/review\/(\d+)\/resolve$/.exec(pathname);
+    if (request.method === "POST" && reviewMatch) {
+      const id = Number(reviewMatch[1]);
+      const row = store.openReviewRows().find((item) => item.id === id);
+      if (!row) return json({ error: "Review item not found." }, 404);
+      const body = await request.json().catch(() => null) as { action?: unknown; domain?: unknown } | null;
+      if (body?.action === "dismiss") return store.resolveReviewItem(id) ? json({ resolved: true }) : json({ error: "Review item not found." }, 404);
+      if (body?.action === "promote" && typeof body.domain === "string") {
+        const domain = companyKey(body.domain);
+        if (!domain) return badRequest("Enter a valid company domain before promoting this item.");
+        if (!store.getCompany(domain)) {
+          const now = new Date().toISOString();
+          store.upsertCompany({
+            domain, displayName: row.item.displayName, aliases: [row.item.displayName], status: "watching",
+            roleWatches: [], evidence: row.item.evidence, firstSeen: now, lastUpdated: now, sightings: 1, pinned: true,
+          });
+        }
+        store.resolveReviewItem(id);
+        return json({ resolved: true, company: store.getCompany(domain) });
+      }
+      return badRequest("Choose dismiss or provide a valid domain to promote.");
+    }
 
     if (request.method === "PUT" && pathname === "/api/profile") {
       const next = sanitizeProfile(await request.json().catch(() => null), store.getSearchProfile());

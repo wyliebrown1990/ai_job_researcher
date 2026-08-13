@@ -15,6 +15,14 @@ Each morning the loop:
 5. **Emails** a curated digest that's a delta on the day before: industry pulse,
    new entrants, top movers, funding in the last 24–48h, and roles for you.
 
+## Local dashboard
+
+Run `bun run scan serve` and open `http://127.0.0.1:3000` for the local-only AI
+Career Intelligence Console. Tune the search profile, inspect company evidence,
+save/hide individual roles, keep a lightweight opportunity pipeline, read past
+digests, and resolve the review queue. Personal state is in `state/ajr.db`; back it
+up before a machine migration or reset.
+
 ## Design
 
 The full loop design (goal, node graph, verification, evals, budgets, human-approval
