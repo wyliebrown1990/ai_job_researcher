@@ -42,7 +42,7 @@ pleasant to return to every day.
 - [x] Add a persistent “new since last visit” treatment for new companies, funding
   events, matching roles, and relevant role-state updates.
 - [x] Ensure Today and the digest prefer material changes over repeated unchanged facts.
-- [ ] Complete responsive laptop and narrow-window layouts, keyboard navigation,
+- [x] Complete responsive laptop and narrow-window layouts, keyboard navigation,
   page titles, clear loading/error states, and light/dark theme consistency.
 - [x] Add a short local “How this works” page/section that explains score confidence,
   evidence, profile filters, and the local-only data boundary.
@@ -53,7 +53,7 @@ pleasant to return to every day.
   role-level digest exclusion, review promotion validation, and archive API behavior.
 - [x] Update `README.md` and `src/README.md` with `scan serve`, the dashboard’s local
   address, profile behavior, and backup location for local state.
-- [ ] Keep `roadmap/PLAN.md` and this sprint guide as the only planning/status record;
+- [x] Keep `roadmap/PLAN.md` and this sprint guide as the only planning/status record;
   update checkbox evidence here as work lands.
 
 ## Browser Testing & Validation (agent-browser CLI)
@@ -117,3 +117,9 @@ pleasant to return to every day.
   a reload cleared the panel as expected. Screenshot: `/tmp/ajr-s4-new-signals.png`.
   Browser console errors: none. The exact temporary role-state row was removed after
   validation.
+- UI polish validation at a 390px viewport found no document-level horizontal overflow,
+  kept navigation keyboard-focusable with a visible 3px outline, and rendered the
+  Companies page in both light and dark system themes. Screenshots:
+  `/tmp/ajr-s4-mobile-companies.png` and `/tmp/ajr-s4-dark-mobile.png`. A deliberately
+  aborted `/api/companies` request rendered the in-app error state and set the title to
+  `Signal Desk · Could not load this view`; no browser console errors were reported.
