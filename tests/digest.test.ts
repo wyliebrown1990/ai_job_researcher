@@ -83,4 +83,19 @@ describe("renderDigest", () => {
     expect(md).toContain("Saved: [Product Manager]");
     expect(md).toContain("Due 2026-08-08");
   });
+
+  test("keeps Following concise by omitting unchanged pinned companies", () => {
+    const unchanged = company({ domain: "quiet.example", displayName: "Quiet", pinned: true });
+    const changed = company({
+      domain: "moving.example", displayName: "Moving", pinned: true, priorOpenRolesCount: 2, openRolesCount: 5,
+    });
+    const md = renderDigest({
+      runDate: "2026-08-08",
+      companies: [{ company: unchanged, matches: [] }, { company: changed, matches: [] }],
+      reviewItems: [], now: NOW,
+    });
+    const section = md.slice(md.indexOf("## Following"), md.indexOf("## Roles for you"));
+    expect(section).toContain("Moving");
+    expect(section).not.toContain("Quiet");
+  });
 });

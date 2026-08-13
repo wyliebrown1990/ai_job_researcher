@@ -127,7 +127,15 @@ export function renderDigest(input: DigestInput): string {
   const topMovers = byBucket("top-mover").sort((a, b) => (b.company.score?.score ?? 0) - (a.company.score?.score ?? 0));
   const newEntrants = byBucket("new-entrant");
   const notable = byBucket("notable-unproven");
-  const following = companies.filter((cd) => cd.company.pinned);
+  const following = companies.filter((cd) => {
+    const company = cd.company;
+    const scoreChanged = company.priorScore !== undefined && company.priorScore !== company.score?.score;
+    const hiringChanged = company.priorOpenRolesCount !== undefined
+      && company.priorOpenRolesCount !== company.openRolesCount;
+    const freshFunding = company.latestFunding
+      && daysBetween(company.latestFunding.announcedDate, now) <= config.staleness.fundingActiveDays + 1;
+    return company.pinned && (scoreChanged || hiringChanged || Boolean(freshFunding) || cd.matches.length > 0);
+  });
 
   const recentFunding = companies.filter((cd) => {
     const f = cd.company.latestFunding;
@@ -157,7 +165,7 @@ export function renderDigest(input: DigestInput): string {
     section("Funding in the last ~48h", recentFunding.map(companyBlock), "No new funding events."),
     section("Notable but unproven", notable.map(companyBlock),
       "None — funded-but-unproven companies appear here, never as top movers (E2)."),
-    section("Following", following.map(companyBlock), "No followed companies yet — pin a company in the dashboard to track it closely."),
+    section("Following", following.map(companyBlock), "No material changes at followed companies today."),
     `## Roles for you\n\n${rolesForYou(companies)}`,
     savedRolesAndActions(savedRoles, dueActions),
     section("Review queue", reviewItems.map((r) => `- **[${r.reason}]** ${r.displayName} — ${r.detail}`),
