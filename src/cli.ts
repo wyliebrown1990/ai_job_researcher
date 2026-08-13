@@ -16,6 +16,7 @@ import { runDaily } from "./pipeline.ts";
 import { loadSeed } from "./seed.ts";
 import { discoverCandidates, discoveryConfigured } from "./discover.ts";
 import { ingestCandidates } from "./ingest.ts";
+import { startServer } from "./server.ts";
 
 function parseFlags(args: string[]): { positional: string[]; flags: Record<string, string> } {
   const positional: string[] = [];
@@ -138,6 +139,12 @@ async function cmdRun(force: boolean, discover: boolean) {
   store.close();
 }
 
+function cmdServe(port?: string) {
+  const value = port === undefined ? 3000 : Number(port);
+  if (!Number.isInteger(value) || value < 1 || value > 65_535) throw new Error("--port must be a valid port number.");
+  startServer(value);
+}
+
 async function main() {
   const [cmd, ...rest] = process.argv.slice(2);
   const { positional, flags } = parseFlags(rest);
@@ -147,10 +154,11 @@ async function main() {
     case "seed": cmdSeed(positional[0]); break;
     case "discover": await cmdDiscover(); break;
     case "run": await cmdRun("force" in flags, "discover" in flags); break;
+    case "serve": cmdServe(flags.port); break;
     case "review": cmdReview(); break;
     case "list": cmdList(); break;
     default:
-      console.log("Usage: bun run scan <run|discover|seed|jobs|detect|review|list> [slug] [--provider p] [--force] [--discover]");
+      console.log("Usage: bun run scan <run|discover|seed|jobs|detect|review|list|serve> [slug] [--provider p] [--force] [--discover] [--port N]");
   }
 }
 

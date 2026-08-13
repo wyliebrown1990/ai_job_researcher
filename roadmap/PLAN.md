@@ -28,8 +28,8 @@ multi-user SaaS, hosted product, or production-grade CRM.
 
 | Sprint | Focus | Status |
 |---|---|---|
-| Sprint 1 | Personal signal foundation — history, preferences, role-level state | Not Started |
-| Sprint 2 | Today dashboard and company intelligence | Not Started |
+| Sprint 1 | Personal signal foundation — history, preferences, role-level state | Completed |
+| Sprint 2 | Today dashboard and company intelligence | Completed |
 | Sprint 3 | Roles workspace and personal opportunity pipeline | Not Started |
 | Sprint 4 | Follow-up loop, review triage, research retention, and polish | Not Started |
 
