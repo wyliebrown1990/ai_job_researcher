@@ -182,6 +182,9 @@ export interface Company {
   totalRaisedUsd?: number;
 
   ats?: { provider: AtsProvider; slug: string };
+  /** Local manual-add progress; a missing board is honest research-only coverage. */
+  atsDetection?: "checking" | "available" | "not-detected";
+  atsCheckedAt?: string;
   openRolesCount?: number;
   /** Open-roles count at the previous run, for hiring-velocity delta. */
   priorOpenRolesCount?: number;

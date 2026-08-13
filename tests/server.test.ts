@@ -58,6 +58,24 @@ describe("local dashboard API", () => {
     expect(await pin.json()).toMatchObject({ pinned: true });
   });
 
+  test("adds a manual company as a pinned research record with a validated domain", async () => {
+    const { handler } = setup();
+    const added = await handler(new Request("http://local/api/companies", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName: "Manual AI", domain: "https://manual.ai/about" }),
+    }));
+    expect(added.status).toBe(201);
+    expect(await added.json()).toMatchObject({
+      existing: false, company: { domain: "manual.ai", displayName: "Manual AI", pinned: true, atsDetection: "checking" },
+    });
+
+    const invalid = await handler(new Request("http://local/api/companies", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName: "No Domain", domain: "not-a-domain" }),
+    }));
+    expect(invalid.status).toBe(400);
+  });
+
   test("persists role actions and a role-level application through the API", async () => {
     const { handler } = setup();
     const state = await handler(new Request("http://local/api/roles/example.ai/job-1/state", {

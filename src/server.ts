@@ -1,7 +1,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Store } from "./db/db.ts";
-import { fetchBoard } from "./fetchers/ats/index.ts";
+import { detectBoard, fetchBoard } from "./fetchers/ats/index.ts";
+import { nowIso } from "./fetchers/http.ts";
 import { matchBoard } from "./lib/roleMatch.ts";
 import { companyKey } from "./lib/identity.ts";
 import { renderDashboard } from "./dashboard.ts";
@@ -38,6 +39,8 @@ function companySummary(store: Store, company: Company) {
     latestFunding: company.latestFunding,
     pinned: Boolean(company.pinned),
     notes: company.notes ?? "",
+    atsDetection: company.atsDetection ?? (company.ats ? "available" : undefined),
+    atsCheckedAt: company.atsCheckedAt,
     firstSeen: company.firstSeen,
     lastUpdated: company.lastUpdated,
   };
@@ -131,6 +134,27 @@ function validApplicationStatus(value: unknown): value is import("./types.ts").A
   return ["researching", "networking", "applied", "interviewing", "closed"].includes(String(value));
 }
 
+async function resolveManualAts(store: Store, domain: string): Promise<void> {
+  for (const slug of [domain, domain.split(".")[0]!]) {
+    const found = await detectBoard(slug).catch(() => null);
+    if (!found) continue;
+    const company = store.getCompany(domain);
+    if (!company) return;
+    company.ats = found.ref;
+    company.atsDetection = "available";
+    company.atsCheckedAt = nowIso();
+    company.openRolesCount = found.jobs.length;
+    store.upsertCompany(company);
+    store.replaceCachedJobs(domain, found.jobs);
+    return;
+  }
+  const company = store.getCompany(domain);
+  if (!company) return;
+  company.atsDetection = "not-detected";
+  company.atsCheckedAt = nowIso();
+  store.upsertCompany(company);
+}
+
 export function createDashboardHandler(store: Store): (request: Request) => Response | Promise<Response> {
   return async (request) => {
     const url = new URL(request.url);
@@ -182,6 +206,24 @@ export function createDashboardHandler(store: Store): (request: Request) => Resp
     }
 
     if (request.method === "GET" && pathname === "/api/profile") return json(store.getSearchProfile());
+
+    if (request.method === "POST" && pathname === "/api/companies") {
+      const body = await request.json().catch(() => null) as { domain?: unknown; displayName?: unknown } | null;
+      const domain = companyKey(typeof body?.domain === "string" ? body.domain : "");
+      const displayName = typeof body?.displayName === "string" ? body.displayName.trim() : "";
+      if (!domain) return badRequest("Enter a valid company domain.");
+      if (!displayName || displayName.length > 120) return badRequest("Enter a company name under 120 characters.");
+      const existing = store.getCompany(domain);
+      if (existing) return json({ company: companySummary(store, existing), existing: true });
+      const now = nowIso();
+      store.upsertCompany({
+        domain, displayName, aliases: [displayName], status: "watching", roleWatches: [],
+        evidence: [], firstSeen: now, lastUpdated: now, sightings: 1, pinned: true,
+        atsDetection: "checking",
+      });
+      void resolveManualAts(store, domain);
+      return json({ company: companySummary(store, store.getCompany(domain)!), existing: false }, 201);
+    }
 
     if (request.method === "GET" && pathname === "/api/review") return json({ items: store.openReviewRows() });
 
