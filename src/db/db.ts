@@ -303,6 +303,19 @@ export class Store {
     };
   }
 
+  recentRoleStates(limit = 20): RoleState[] {
+    return this.db.query<{
+      domain: string; external_id: string; saved: number; hidden: number; applied: number;
+      fit_override: RoleState["fitOverride"] | null; created_at: string; updated_at: string;
+    }, [number]>(
+      "SELECT domain, external_id, saved, hidden, applied, fit_override, created_at, updated_at FROM role_state ORDER BY updated_at DESC LIMIT ?",
+    ).all(limit).map((row) => ({
+      domain: row.domain, externalId: row.external_id, saved: Boolean(row.saved), hidden: Boolean(row.hidden),
+      applied: Boolean(row.applied), fitOverride: row.fit_override ?? undefined,
+      createdAt: row.created_at, updatedAt: row.updated_at,
+    }));
+  }
+
   upsertRoleState(
     domain: string,
     externalId: string,

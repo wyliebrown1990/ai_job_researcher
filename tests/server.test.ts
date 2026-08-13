@@ -97,6 +97,7 @@ describe("local dashboard API", () => {
     const today = await handler(new Request("http://local/api/today"));
     expect(await today.json()).toMatchObject({
       nextActions: [{ domain: "example.ai", externalId: "job-1", company: "Example AI", nextActionAt: "2026-08-20" }],
+      recentRoleUpdates: [{ domain: "example.ai", externalId: "job-1", company: "Example AI" }],
     });
 
     const deleted = await handler(new Request("http://local/api/roles/example.ai/job-1/application", { method: "DELETE" }));

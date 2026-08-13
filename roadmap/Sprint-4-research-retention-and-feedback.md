@@ -39,9 +39,9 @@ pleasant to return to every day.
 
 ### Product polish
 
-- [ ] Add a persistent “new since last visit” treatment for new companies, funding
+- [x] Add a persistent “new since last visit” treatment for new companies, funding
   events, matching roles, and relevant role-state updates.
-- [ ] Ensure Today and the digest prefer material changes over repeated unchanged facts.
+- [x] Ensure Today and the digest prefer material changes over repeated unchanged facts.
 - [ ] Complete responsive laptop and narrow-window layouts, keyboard navigation,
   page titles, clear loading/error states, and light/dark theme consistency.
 - [x] Add a short local “How this works” page/section that explains score confidence,
@@ -49,7 +49,7 @@ pleasant to return to every day.
 
 ### Quality and documentation
 
-- [ ] Run `bun run typecheck` and `bun test`; add regression tests for pin refresh,
+- [x] Run `bun run typecheck` and `bun test`; add regression tests for pin refresh,
   role-level digest exclusion, review promotion validation, and archive API behavior.
 - [x] Update `README.md` and `src/README.md` with `scan serve`, the dashboard’s local
   address, profile behavior, and backup location for local state.
@@ -68,9 +68,9 @@ pleasant to return to every day.
   `state/ajr.db`; reload and capture persisted UI state.
 - [ ] Run the daily loop and verify a pinned company is refreshed within the current
   fetch budget and relevant changes appear in the digest's Following section.
-- [ ] Verify “new since last visit” resets/updates predictably after revisiting and
+- [x] Verify “new since last visit” resets/updates predictably after revisiting and
   capture final screenshots of Today, Review, and Research.
-- [ ] Document screenshots and any failures in this sprint document before asking for
+- [x] Document screenshots and any failures in this sprint document before asking for
   human assistance.
 
 ## Infrastructure and Cost Constraints
@@ -81,10 +81,10 @@ pleasant to return to every day.
 
 ## Acceptance Criteria
 
-- [ ] Following a company has a visible, useful effect on scanning and the digest.
-- [ ] Review items can be safely promoted or dismissed, and historical digests remain
+- [x] Following a company has a visible, useful effect on scanning and the digest.
+- [x] Review items can be safely promoted or dismissed, and historical digests remain
   browsable locally.
-- [ ] The dashboard explains its signals and supports repeat daily use without noisy
+- [x] The dashboard explains its signals and supports repeat daily use without noisy
   duplicate information.
 - [ ] All browser flows have screenshot/state evidence and automated tests pass.
 
@@ -112,3 +112,8 @@ pleasant to return to every day.
   the local server remains bound to `127.0.0.1` with no new services provisioned.
 - Daily-plan regression coverage verifies followed companies are placed ahead of passive
   entries when the existing refresh cap applies; archived entries are never selected.
+- Return-visit validation: with a disposable HappyRobot role decision made after a
+  simulated prior visit, Today showed `New since your last visit` with the saved role;
+  a reload cleared the panel as expected. Screenshot: `/tmp/ajr-s4-new-signals.png`.
+  Browser console errors: none. The exact temporary role-state row was removed after
+  validation.

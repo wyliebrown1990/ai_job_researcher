@@ -175,6 +175,15 @@ export function createDashboardHandler(store: Store): (request: Request) => Resp
         .sort((a, b) => Math.abs(b.scoreDelta ?? 0) - Math.abs(a.scoreDelta ?? 0)).slice(0, 6);
       const roleChanges = companies.filter((company) => company.matchingRolesCount > 0)
         .sort((a, b) => b.matchingRolesCount - a.matchingRolesCount).slice(0, 6);
+      const recentRoleUpdates = store.recentRoleStates().map((state) => {
+        const company = store.getCompany(state.domain);
+        const job = store.cachedJobs(state.domain).find((item) => item.externalId === state.externalId);
+        return {
+          ...state,
+          company: company?.displayName ?? state.domain,
+          title: job?.title ?? "Role no longer live",
+        };
+      });
       return json({
         updatedAt: companies.map((company) => company.lastUpdated).sort().at(-1) ?? null,
         totals: {
@@ -187,6 +196,10 @@ export function createDashboardHandler(store: Store): (request: Request) => Resp
         roleChanges,
         following: companies.filter((company) => company.pinned),
         nextActions,
+        recentFunding: companies.filter((company) => company.latestFunding)
+          .map((company) => ({ company: company.displayName, funding: company.latestFunding! }))
+          .sort((a, b) => b.funding.announcedDate.localeCompare(a.funding.announcedDate)).slice(0, 6),
+        recentRoleUpdates,
       });
     }
 
