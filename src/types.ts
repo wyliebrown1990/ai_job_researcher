@@ -76,6 +76,22 @@ export type TargetRole =
   | "partnerships"
   | "forward-deployed";
 
+/** Personal constraints used to decide which live ATS matches are worth surfacing. */
+export type RemotePreference = "any" | "remote-only" | "remote-or-location" | "location-only";
+
+export interface SearchProfile {
+  targetRoles: TargetRole[];
+  /** Jobs without an explicit years requirement remain eligible. */
+  minExperienceYears?: number;
+  maxExperienceYears?: number;
+  acceptedLocations: string[];
+  remotePreference: RemotePreference;
+  includedSectors: string[];
+  excludedKeywords: string[];
+  minCompanyScore: number;
+  updatedAt: string;
+}
+
 export interface JobPosting {
   /** Stable id from the ATS. */
   externalId: string;
@@ -102,6 +118,45 @@ export interface RoleMatch {
   fitCaveat?: string;
   /** Whether the match came from the title, the JD body, or the department (E3). */
   matchedOn: ("title" | "body" | "team")[];
+}
+
+/** A user's lightweight disposition for one live ATS posting. */
+export interface RoleState {
+  domain: string;
+  externalId: string;
+  saved: boolean;
+  hidden: boolean;
+  applied: boolean;
+  fitOverride?: "good" | "maybe" | "poor";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ApplicationStatus = "researching" | "networking" | "applied" | "interviewing" | "closed";
+
+/** A deliberate application workflow record, separate from company status. */
+export interface Application {
+  id: number;
+  domain: string;
+  externalId: string;
+  status: ApplicationStatus;
+  notes: string;
+  nextActionAt?: string;
+  appliedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Snapshot {
+  domain: string;
+  runDate: string;
+  score?: number;
+  bucket?: DigestBucket;
+  confidence?: Confidence;
+  openRolesCount?: number;
+  matchingRolesCount?: number;
+  fundingTotalUsd?: number;
+  createdAt: string;
 }
 
 export type CompanyStatus = "watching" | "promising" | "applied" | "archived";
@@ -142,6 +197,10 @@ export interface Company {
 
   /** Role families to alert on even if not currently open (E1 role_watch). */
   roleWatches: TargetRole[];
+
+  /** Local research intent. These values are stored in dedicated SQLite columns. */
+  pinned?: boolean;
+  notes?: string;
 
   evidence: Evidence[];
 

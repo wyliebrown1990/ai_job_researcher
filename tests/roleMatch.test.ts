@@ -1,9 +1,22 @@
 import { expect, test, describe } from "bun:test";
 import { matchJob } from "../src/lib/roleMatch.ts";
-import type { JobPosting } from "../src/types.ts";
+import type { JobPosting, SearchProfile } from "../src/types.ts";
 
 function job(p: Partial<JobPosting>): JobPosting {
   return { externalId: "x", title: "", location: "", url: "", retrievedAt: "2026-08-08T00:00:00Z", ...p };
+}
+
+function profile(overrides: Partial<SearchProfile> = {}): SearchProfile {
+  return {
+    targetRoles: ["solutions-engineer", "sales-engineer", "product-manager", "partnerships", "forward-deployed"],
+    acceptedLocations: [],
+    remotePreference: "any",
+    includedSectors: [],
+    excludedKeywords: [],
+    minCompanyScore: 0,
+    updatedAt: "2026-08-13T00:00:00Z",
+    ...overrides,
+  };
 }
 
 describe("matchJob (E1/E3)", () => {
@@ -45,5 +58,18 @@ describe("matchJob (E1/E3)", () => {
 
   test("non-target role returns null", () => {
     expect(matchJob(job({ title: "Backend Software Engineer", descriptionText: "golang microservices" }))).toBeNull();
+  });
+
+  test("respects the active role, location, and experience preferences", () => {
+    const p = profile({
+      targetRoles: ["product-manager"],
+      acceptedLocations: ["New York"],
+      remotePreference: "remote-or-location",
+      maxExperienceYears: 8,
+    });
+    expect(matchJob(job({ title: "Product Manager", location: "New York, NY", descriptionText: "6 years experience" }), p)).not.toBeNull();
+    expect(matchJob(job({ title: "Solutions Architect", location: "New York, NY" }), p)).toBeNull();
+    expect(matchJob(job({ title: "Product Manager", location: "San Francisco", descriptionText: "6 years experience" }), p)).toBeNull();
+    expect(matchJob(job({ title: "Product Manager", location: "Remote", isRemote: true, descriptionText: "10 years experience" }), p)).toBeNull();
   });
 });

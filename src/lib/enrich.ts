@@ -3,7 +3,7 @@
 // assembles signals, and (re)scores. Funding + judgment sub-scores come from the
 // company's stored record (supplied by research/LLM); this node computes the rest.
 
-import type { Company, RoleMatch, Evidence } from "../types.ts";
+import type { Company, RoleMatch, Evidence, SearchProfile } from "../types.ts";
 import { fetchBoard } from "../fetchers/ats/index.ts";
 import { matchBoard } from "./roleMatch.ts";
 import { deriveComponents, scoreCompany, type SignalInputs } from "./scoring.ts";
@@ -23,7 +23,7 @@ function newestEvidenceDate(evidence: Evidence[]): string | undefined {
 
 export async function enrichAndScore(
   input: Company,
-  opts: { isNew?: boolean; now?: Date } = {},
+  opts: { isNew?: boolean; now?: Date; profile?: SearchProfile } = {},
 ): Promise<EnrichResult> {
   const now = opts.now ?? new Date();
   const company: Company = { ...input };
@@ -41,7 +41,7 @@ export async function enrichAndScore(
   if (company.ats) {
     try {
       const jobs = await fetchBoard(company.ats);
-      matches = matchBoard(jobs);
+      matches = matchBoard(jobs, opts.profile);
       if (dayAdvanced) company.priorOpenRolesCount = company.openRolesCount;
       company.openRolesCount = jobs.length;
     } catch {

@@ -39,11 +39,15 @@ export async function runDaily(
     .slice(0, config.limits.maxRefreshPerDay);
 
   const results: CompanyDigest[] = [];
+  const profile = store.getSearchProfile();
   for (const c of watchlist) {
     // "New entrant" = recently founded, not merely first-scored (else every company
     // is a new entrant on run one).
     const isNew = c.foundedYear !== undefined && c.foundedYear >= now.getFullYear() - 1;
-    const { company, matches } = await enrichAndScore(c, { isNew, now });
+    const { company, matches } = await enrichAndScore(c, { isNew, now, profile });
+    // Growth remains visible on the company side, while the role queue honors the
+    // minimum company signal threshold in the active personal search profile.
+    const visibleMatches = (company.score?.score ?? 0) >= profile.minCompanyScore ? matches : [];
 
     // VERIFY — evidence hard-gate (C4): a company with no dated source evidence and
     // no live job signal can't be trusted in the main digest → review queue.
@@ -61,7 +65,9 @@ export async function runDaily(
     }
 
     store.upsertCompany(company);
-    results.push({ company, matches });
+    store.writeSnapshot(company, runDate, visibleMatches.length);
+    if (company.latestFunding) store.appendFundingEvent(company.domain, company.latestFunding);
+    results.push({ company, matches: visibleMatches });
   }
 
   // RANK & DIGEST

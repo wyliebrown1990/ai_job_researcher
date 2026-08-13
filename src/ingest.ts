@@ -89,6 +89,7 @@ export function ingestCandidates(
       existing.lastUpdated = nowIso;
       if (fundingEvent && isNewerFunding(fundingEvent, existing.latestFunding)) {
         existing.latestFunding = fundingEvent;
+        store.appendFundingEvent(key, fundingEvent);
       }
       existing.judgments = { ...existing.judgments, ...c.judgments };
       if (c.description && !existing.description) existing.description = c.description;
@@ -123,6 +124,7 @@ export function ingestCandidates(
       sightings: 1,
     };
     store.upsertCompany(company);
+    if (fundingEvent) store.appendFundingEvent(key, fundingEvent);
     summary.added++;
     summary.newDomains.push(key);
   }

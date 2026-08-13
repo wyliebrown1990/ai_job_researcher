@@ -2,7 +2,7 @@
 // Matches over title AND JD body AND team (title-only matching misses real roles),
 // and attaches an honest fit_caveat (title match is not fit).
 
-import type { JobPosting, RoleMatch, TargetRole } from "../types.ts";
+import type { JobPosting, RoleMatch, SearchProfile, TargetRole } from "../types.ts";
 import { config } from "../config.ts";
 
 const YEARS_RE = /\b(\d{1,2})\+?\s*(?:years|yrs)\b/i;
@@ -19,17 +19,36 @@ const HEAVY_CODING_RE = /\b(react|typescript|node\.?js|golang|full-?stack|ci\/cd
  * target terms don't create false positives. Semantic body matching (e.g. an
  * unusually-named role that IS a solutions role) is left to the LLM enrichment node.
  */
-export function matchJob(job: JobPosting): RoleMatch | null {
+export function matchJob(job: JobPosting, profile?: SearchProfile): RoleMatch | null {
   const title = (job.title ?? "").toLowerCase();
   if (!title) return null;
   if (config.excludeTitles.some((x) => title.includes(x))) return null;
+  if (profile?.excludedKeywords.some((keyword) => title.includes(keyword.toLowerCase()))) return null;
+  if (!matchesLocationPreference(job, profile)) return null;
+  if (!matchesExperiencePreference(job, profile)) return null;
 
   for (const [role, forms] of Object.entries(config.targetRoles) as [TargetRole, string[]][]) {
-    if (forms.some((form) => title.includes(form))) {
+    if ((!profile || profile.targetRoles.includes(role)) && forms.some((form) => title.includes(form))) {
       return { job, role, matchScore: 1, matchedOn: ["title"], fitCaveat: buildCaveat(job, role) };
     }
   }
   return null;
+}
+
+function matchesLocationPreference(job: JobPosting, profile?: SearchProfile): boolean {
+  if (!profile || profile.remotePreference === "any") return true;
+  const hasAcceptedLocation = profile.acceptedLocations.some((location) =>
+    job.location.toLowerCase().includes(location.toLowerCase()),
+  );
+  if (profile.remotePreference === "remote-only") return Boolean(job.isRemote);
+  if (profile.remotePreference === "remote-or-location") return Boolean(job.isRemote) || hasAcceptedLocation;
+  return hasAcceptedLocation;
+}
+
+function matchesExperiencePreference(job: JobPosting, profile?: SearchProfile): boolean {
+  if (!profile?.maxExperienceYears) return true;
+  const years = `${job.title} ${job.descriptionText ?? ""}`.match(YEARS_RE)?.[1];
+  return !years || parseInt(years, 10) <= profile.maxExperienceYears;
 }
 
 function buildCaveat(job: JobPosting, role: TargetRole): string | undefined {
@@ -53,9 +72,9 @@ function buildCaveat(job: JobPosting, role: TargetRole): string | undefined {
 }
 
 /** Match a whole board; returns matches sorted best-first. */
-export function matchBoard(jobs: JobPosting[]): RoleMatch[] {
+export function matchBoard(jobs: JobPosting[], profile?: SearchProfile): RoleMatch[] {
   return jobs
-    .map(matchJob)
+    .map((job) => matchJob(job, profile))
     .filter((m): m is RoleMatch => m !== null)
     .sort((a, b) => b.matchScore - a.matchScore);
 }
