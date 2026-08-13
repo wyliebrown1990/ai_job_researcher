@@ -374,7 +374,7 @@ export class Store {
 
   applications(): Application[] {
     return this.db.query<{ domain: string; external_id: string }, []>(
-      "SELECT domain, external_id FROM applications ORDER BY updated_at DESC",
+      "SELECT domain, external_id FROM applications ORDER BY updated_at DESC, id DESC",
     ).all().map((row) => this.applicationFor(row.domain, row.external_id)!);
   }
 

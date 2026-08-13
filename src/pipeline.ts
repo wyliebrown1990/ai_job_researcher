@@ -47,7 +47,13 @@ export async function runDaily(
     const { company, matches } = await enrichAndScore(c, { isNew, now, profile });
     // Growth remains visible on the company side, while the role queue honors the
     // minimum company signal threshold in the active personal search profile.
-    const visibleMatches = (company.score?.score ?? 0) >= profile.minCompanyScore ? matches : [];
+    const profileMatches = (company.score?.score ?? 0) >= profile.minCompanyScore ? matches : [];
+    // Application decisions belong to individual postings, not the company. Keep
+    // scanning every role, but omit deliberately hidden/applied postings from the digest.
+    const visibleMatches = profileMatches.filter((match) => {
+      const state = store.getRoleState(company.domain, match.job.externalId);
+      return !state?.hidden && !state?.applied;
+    });
 
     // VERIFY — evidence hard-gate (C4): a company with no dated source evidence and
     // no live job signal can't be trusted in the main digest → review queue.

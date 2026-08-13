@@ -57,4 +57,17 @@ describe("local dashboard API", () => {
     }));
     expect(await pin.json()).toMatchObject({ pinned: true });
   });
+
+  test("persists role actions and a role-level application through the API", async () => {
+    const { handler } = setup();
+    const state = await handler(new Request("http://local/api/roles/example.ai/job-1/state", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ saved: true }),
+    }));
+    expect(await state.json()).toMatchObject({ domain: "example.ai", externalId: "job-1", saved: true });
+
+    const application = await handler(new Request("http://local/api/roles/example.ai/job-1/application", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "researching", notes: "Review the deployment work." }),
+    }));
+    expect(await application.json()).toMatchObject({ status: "researching", notes: "Review the deployment work." });
+  });
 });

@@ -83,6 +83,45 @@ function sanitizeProfile(input: unknown, current: SearchProfile): Omit<SearchPro
   };
 }
 
+type RoleEntry = {
+  domain: string;
+  displayName: string;
+  category?: string;
+  score: number;
+  role: string;
+  fitCaveat?: string;
+  job: ReturnType<typeof matchBoard>[number]["job"];
+  state: ReturnType<Store["getRoleState"]>;
+};
+
+async function collectRoles(store: Store): Promise<RoleEntry[]> {
+  const profile = store.getSearchProfile();
+  const companies = store.allCompanies().filter((company) =>
+    (company.score?.score ?? 0) >= profile.minCompanyScore
+    && (profile.includedSectors.length === 0 || profile.includedSectors.some((sector) => company.category?.toLowerCase().includes(sector.toLowerCase()))),
+  );
+  const batches = await Promise.all(companies.map(async (company) => {
+    if (!company.ats) return [] as RoleEntry[];
+    try {
+      return matchBoard(await fetchBoard(company.ats), profile).map((match) => ({
+        domain: company.domain,
+        displayName: company.displayName,
+        category: company.category,
+        score: company.score?.score ?? 0,
+        role: match.role,
+        fitCaveat: match.fitCaveat,
+        job: match.job,
+        state: store.getRoleState(company.domain, match.job.externalId),
+      }));
+    } catch { return [] as RoleEntry[]; }
+  }));
+  return batches.flat().sort((a, b) => b.score - a.score);
+}
+
+function validApplicationStatus(value: unknown): value is import("./types.ts").ApplicationStatus {
+  return ["researching", "networking", "applied", "interviewing", "closed"].includes(String(value));
+}
+
 export function createDashboardHandler(store: Store): (request: Request) => Response | Promise<Response> {
   return async (request) => {
     const url = new URL(request.url);
@@ -131,6 +170,56 @@ export function createDashboardHandler(store: Store): (request: Request) => Resp
     if (request.method === "PUT" && pathname === "/api/profile") {
       const next = sanitizeProfile(await request.json().catch(() => null), store.getSearchProfile());
       return next ? json(store.saveSearchProfile(next)) : badRequest("Use a valid search profile.");
+    }
+
+    if (request.method === "GET" && pathname === "/api/roles") {
+      let roles = await collectRoles(store);
+      const family = url.searchParams.get("family");
+      const remote = url.searchParams.get("remote");
+      const include = url.searchParams.get("include") === "true";
+      if (family) roles = roles.filter((role) => role.role === family);
+      if (remote === "true") roles = roles.filter((role) => role.job.isRemote);
+      if (!include) roles = roles.filter((role) => !role.state?.hidden && !role.state?.applied);
+      return json({ roles });
+    }
+
+    if (request.method === "GET" && pathname === "/api/applications") {
+      const roles = await collectRoles(store);
+      return json({ applications: store.applications().map((application) => ({
+        ...application,
+        role: roles.find((role) => role.domain === application.domain && role.job.externalId === application.externalId) ?? null,
+      })) });
+    }
+
+    const roleStateMatch = /^\/api\/roles\/([^/]+)\/([^/]+)\/state$/.exec(pathname);
+    if (request.method === "POST" && roleStateMatch) {
+      const domain = decodeURIComponent(roleStateMatch[1]!);
+      if (!store.getCompany(domain)) return json({ error: "Company not found." }, 404);
+      const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+      if (!body) return badRequest("Use a valid role state.");
+      const allowed = ["saved", "hidden", "applied", "fitOverride"] as const;
+      if (!Object.keys(body).some((key) => allowed.includes(key as typeof allowed[number]))) return badRequest("No role state fields were supplied.");
+      if (["saved", "hidden", "applied"].some((key) => body[key] !== undefined && typeof body[key] !== "boolean")) return badRequest("Role flags must be true or false.");
+      if (body.fitOverride !== undefined && !["good", "maybe", "poor", null].includes(body.fitOverride as string | null)) return badRequest("Use a valid fit override.");
+      return json(store.upsertRoleState(domain, decodeURIComponent(roleStateMatch[2]!), body));
+    }
+
+    const applicationMatch = /^\/api\/roles\/([^/]+)\/([^/]+)\/application$/.exec(pathname);
+    if (["POST", "PATCH"].includes(request.method) && applicationMatch) {
+      const domain = decodeURIComponent(applicationMatch[1]!);
+      if (!store.getCompany(domain)) return json({ error: "Company not found." }, 404);
+      const externalId = decodeURIComponent(applicationMatch[2]!);
+      const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+      if (!body) return badRequest("Use a valid application.");
+      const status = body.status ?? "researching";
+      if (!validApplicationStatus(status)) return badRequest("Use a valid application status.");
+      if (body.notes !== undefined && typeof body.notes !== "string") return badRequest("Notes must be text.");
+      const application = request.method === "POST"
+        ? store.createApplication({ domain, externalId, status, notes: typeof body.notes === "string" ? body.notes : "", nextActionAt: typeof body.nextActionAt === "string" ? body.nextActionAt : undefined, appliedAt: status === "applied" ? new Date().toISOString() : undefined })
+        : store.updateApplication(domain, externalId, { status, notes: typeof body.notes === "string" ? body.notes : undefined, nextActionAt: typeof body.nextActionAt === "string" ? body.nextActionAt : undefined });
+      if (!application) return json({ error: "Application not found." }, 404);
+      if (status === "applied") store.upsertRoleState(domain, externalId, { applied: true });
+      return json(application);
     }
 
     const companyMatch = /^\/api\/companies\/([^/]+)$/.exec(pathname);

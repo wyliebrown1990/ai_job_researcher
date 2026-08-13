@@ -128,4 +128,11 @@ describe("Store personal signal foundation", () => {
     expect(application).toMatchObject({ status: "applied", notes: "Used GTM resume." });
     expect(db.getCompany("example.ai")?.status).toBe("watching");
   });
+
+  test("lists applications in most recently updated order", () => {
+    const db = store();
+    db.createApplication({ domain: "example.ai", externalId: "job-1", status: "researching", notes: "First" });
+    db.createApplication({ domain: "example.ai", externalId: "job-2", status: "applied", notes: "Second" });
+    expect(db.applications().map((application) => application.externalId)).toEqual(["job-2", "job-1"]);
+  });
 });
