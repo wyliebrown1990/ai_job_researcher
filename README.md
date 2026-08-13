@@ -39,7 +39,9 @@ web search to surface fresh companies, feeding a **pure ingest boundary** that a
 the dedup/rumor/evidence rules before anything reaches the watchlist. The daily run
 (`scan run --discover`) discovers, refreshes, scores, renders a digest, and **emails
 it via Resend** (this project's own key) to wyliebrown1990@gmail.com on a **7:00 AM
-launchd schedule** (see [deploy/](deploy/README.md)). See [src/README.md](src/README.md).
+launchd schedule** (see [deploy/](deploy/README.md)). Use `scan run --no-email` for a
+safe local refresh that persists the digest but intentionally skips delivery. See
+[src/README.md](src/README.md).
 
 ## Stack
 

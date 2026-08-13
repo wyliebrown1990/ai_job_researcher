@@ -17,12 +17,12 @@ multi-user SaaS, hosted product, or production-grade CRM.
 
 ## Product Principles
 
-- [ ] Make the **Today** view answer “what changed and what should I do?” in a few minutes.
-- [ ] Let a personal search profile control role relevance before results reach the digest.
-- [ ] Track applications at the **role level**, never by hiding an entire company after one application.
-- [ ] Show sourced evidence and changes over time so funding hype is distinguishable from signal.
-- [ ] Keep every important personal decision (follow, save, pass, note, next step) in local SQLite.
-- [ ] Keep the implementation local, buildless, and low-maintenance; defer auth, sync, collaboration, and cloud hosting.
+- [x] Make the **Today** view answer “what changed and what should I do?” in a few minutes.
+- [x] Let a personal search profile control role relevance before results reach the digest.
+- [x] Track applications at the **role level**, never by hiding an entire company after one application.
+- [x] Show sourced evidence and changes over time so funding hype is distinguishable from signal.
+- [x] Keep every important personal decision (follow, save, pass, note, next step) in local SQLite.
+- [x] Keep the implementation local, buildless, and low-maintenance; defer auth, sync, collaboration, and cloud hosting.
 
 ## Sprint Overview
 
@@ -31,7 +31,7 @@ multi-user SaaS, hosted product, or production-grade CRM.
 | Sprint 1 | Personal signal foundation — history, preferences, role-level state | Completed |
 | Sprint 2 | Today dashboard and company intelligence | Completed |
 | Sprint 3 | Roles workspace and personal opportunity pipeline | Completed |
-| Sprint 4 | Follow-up loop, review triage, research retention, and polish | In Progress |
+| Sprint 4 | Follow-up loop, review triage, research retention, and polish | Completed |
 
 ## Experience Map
 
@@ -78,10 +78,10 @@ What needs action             Roles                           Review queue
 
 ## Dependencies
 
-- [ ] Bun's built-in `Bun.serve` and `bun:sqlite` only; add no frontend package unless a later sprint proves it is needed.
-- [ ] Existing ATS fetchers remain the source of roles; do not broaden scraping scope in this project plan.
-- [ ] Existing `state/ajr.db` must receive idempotent, non-destructive migrations.
-- [ ] `agent-browser` CLI is required for every dashboard validation flow.
+- [x] Bun's built-in `Bun.serve` and `bun:sqlite` only; add no frontend package unless a later sprint proves it is needed.
+- [x] Existing ATS fetchers remain the source of roles; do not broaden scraping scope in this project plan.
+- [x] Existing `state/ajr.db` must receive idempotent, non-destructive migrations.
+- [x] `agent-browser` CLI is required for every dashboard validation flow.
 
 ## Explicitly Deferred
 

@@ -24,10 +24,11 @@ export function writeDigest(markdown: string, runDate: string, dir = "digests"):
 export async function deliver(
   markdown: string,
   runDate: string,
-  opts: { subject?: string } = {},
+  opts: { subject?: string; skipEmail?: boolean; dir?: string } = {},
 ): Promise<DeliveryReceipt> {
-  const path = writeDigest(markdown, runDate);
+  const path = writeDigest(markdown, runDate, opts.dir);
 
+  if (opts.skipEmail) return { path, emailed: false, emailReason: "email disabled for this run" };
   if (!emailConfigured()) {
     return { path, emailed: false, emailReason: "email not configured (see .env.example)" };
   }

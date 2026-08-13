@@ -31,7 +31,7 @@ export function selectDailyWatchlist(companies: Company[]): Company[] {
 
 export async function runDaily(
   store: Store,
-  opts: { force?: boolean; now?: Date } = {},
+  opts: { force?: boolean; now?: Date; skipEmail?: boolean } = {},
 ): Promise<RunResult> {
   const now = opts.now ?? new Date();
   const runDate = now.toISOString().slice(0, 10);
@@ -102,7 +102,7 @@ export async function runDaily(
   const movers = results.filter((cd) => cd.company.score?.bucket === "top-mover").length;
   const matchCount = results.reduce((n, cd) => n + cd.matches.length, 0);
   const subject = `AI Industry Digest — ${runDate} · ${movers} mover(s), ${matchCount} role(s)`;
-  const receipt = await deliver(markdown, runDate, { subject });
+  const receipt = await deliver(markdown, runDate, { subject, skipEmail: opts.skipEmail });
   const summary = `${results.length} scored, ${reviewItems.length} in review, ${fetchesUsed()} fetches`;
   store.finishRun(runDate, nowIso(), summary);
 

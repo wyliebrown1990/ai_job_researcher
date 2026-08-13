@@ -17,17 +17,7 @@ import { loadSeed } from "./seed.ts";
 import { discoverCandidates, discoveryConfigured } from "./discover.ts";
 import { ingestCandidates } from "./ingest.ts";
 import { startServer } from "./server.ts";
-
-function parseFlags(args: string[]): { positional: string[]; flags: Record<string, string> } {
-  const positional: string[] = [];
-  const flags: Record<string, string> = {};
-  for (let i = 0; i < args.length; i++) {
-    const a = args[i]!;
-    if (a.startsWith("--")) { flags[a.slice(2)] = args[++i] ?? "true"; }
-    else positional.push(a);
-  }
-  return { positional, flags };
-}
+import { parseFlags } from "./lib/cliFlags.ts";
 
 async function cmdJobs(slug: string, provider?: AtsProvider) {
   const result = provider
@@ -118,7 +108,7 @@ async function cmdDiscover() {
   }
 }
 
-async function cmdRun(force: boolean, discover: boolean) {
+async function cmdRun(force: boolean, discover: boolean, skipEmail: boolean) {
   const store = new Store();
   if (discover && discoveryConfigured()) {
     console.log("🔎 Discovering fresh companies first…");
@@ -129,7 +119,7 @@ async function cmdRun(force: boolean, discover: boolean) {
       console.log(`   +${s.added} new, ${s.refreshed} refreshed, ${s.reviewed} to review`);
     }
   }
-  const res = await runDaily(store, { force });
+  const res = await runDaily(store, { force, skipEmail });
   if (res.skipped) {
     console.log(`Run for ${res.runDate} already completed (idempotent). Use --force to re-run.`);
   } else {
@@ -153,12 +143,12 @@ async function main() {
     case "detect": await cmdDetect(positional[0]!); break;
     case "seed": cmdSeed(positional[0]); break;
     case "discover": await cmdDiscover(); break;
-    case "run": await cmdRun("force" in flags, "discover" in flags); break;
+    case "run": await cmdRun("force" in flags, "discover" in flags, "no-email" in flags); break;
     case "serve": cmdServe(flags.port); break;
     case "review": cmdReview(); break;
     case "list": cmdList(); break;
     default:
-      console.log("Usage: bun run scan <run|discover|seed|jobs|detect|review|list|serve> [slug] [--provider p] [--force] [--discover] [--port N]");
+      console.log("Usage: bun run scan <run|discover|seed|jobs|detect|review|list|serve> [slug] [--provider p] [--force] [--discover] [--no-email] [--port N]");
   }
 }
 

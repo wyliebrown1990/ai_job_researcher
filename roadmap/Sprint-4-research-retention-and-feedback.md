@@ -66,7 +66,7 @@ pleasant to return to every day.
   company controls; exercise their primary flows with interactive refs.
 - [x] Confirm promotions, dismissals, notes, and a manually added company in
   `state/ajr.db`; reload and capture persisted UI state.
-- [ ] Run the daily loop and verify a pinned company is refreshed within the current
+- [x] Run the daily loop and verify a pinned company is refreshed within the current
   fetch budget and relevant changes appear in the digest's Following section.
 - [x] Verify “new since last visit” resets/updates predictably after revisiting and
   capture final screenshots of Today, Review, and Research.
@@ -86,7 +86,7 @@ pleasant to return to every day.
   browsable locally.
 - [x] The dashboard explains its signals and supports repeat daily use without noisy
   duplicate information.
-- [ ] All browser flows have screenshot/state evidence and automated tests pass.
+- [x] All browser flows have screenshot/state evidence and automated tests pass.
 
 ## Notes for Future Developers
 
@@ -97,7 +97,7 @@ pleasant to return to every day.
 
 ## Validation Evidence
 
-- 2026-08-13: `bun run typecheck && bun test` passed: 55 tests, 0 failures.
+- 2026-08-13: `bun run typecheck && bun test` passed: 58 tests, 0 failures.
 - Research and Review screenshots: `/tmp/ajr-research.png`, `/tmp/ajr-review.png`,
   `/tmp/ajr-s4-review-grouped.png`, and `/tmp/ajr-s4-review-actions.png`.
   Company-to-archive link: `/tmp/ajr-s4-company-archive-link.png`.
@@ -123,3 +123,11 @@ pleasant to return to every day.
   `/tmp/ajr-s4-mobile-companies.png` and `/tmp/ajr-s4-dark-mobile.png`. A deliberately
   aborted `/api/companies` request rendered the in-app error state and set the title to
   `Signal Desk · Could not load this view`; no browser console errors were reported.
+- Daily-loop validation: temporarily pinned HappyRobot, then ran
+  `bun run scan run --force --no-email`. It refreshed 17 companies in 9 fetches,
+  persisted the 2026-08-13 digest with `emailed=false`, and the browser confirmed
+  HappyRobot in both Today’s Following lane (`/tmp/ajr-s4-daily-today.png`) and the
+  digest’s Following section (`/tmp/ajr-s4-daily-following-digest.png`). The temporary
+  pin was restored to false. The first attempt did send one real digest because adjacent
+  boolean flags were parsed incorrectly; `parseFlags` now keeps them independent and
+  has regression coverage, so the verified second run sent no email.

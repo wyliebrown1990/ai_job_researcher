@@ -75,6 +75,7 @@ bun run scan discover                        # LLM finds fresh companies (needs 
 bun run scan run                             # run the full daily loop → digests/
 bun run scan run --discover                  # discover fresh companies, then run
 bun run scan run --force                     # re-run same day (idempotency override)
+bun run scan run --no-email                  # refresh and persist without sending email
 bun run scan serve                           # local dashboard at http://127.0.0.1:3000
 bun run scan jobs happyrobot.ai              # live JOB SCAN one board (auto-detect ATS)
 bun run scan jobs anthropic --provider greenhouse
