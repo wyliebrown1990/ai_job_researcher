@@ -109,6 +109,7 @@ export function renderDigest(input: DigestInput): string {
   const topMovers = byBucket("top-mover").sort((a, b) => (b.company.score?.score ?? 0) - (a.company.score?.score ?? 0));
   const newEntrants = byBucket("new-entrant");
   const notable = byBucket("notable-unproven");
+  const following = companies.filter((cd) => cd.company.pinned);
 
   const recentFunding = companies.filter((cd) => {
     const f = cd.company.latestFunding;
@@ -138,6 +139,7 @@ export function renderDigest(input: DigestInput): string {
     section("Funding in the last ~48h", recentFunding.map(companyBlock), "No new funding events."),
     section("Notable but unproven", notable.map(companyBlock),
       "None — funded-but-unproven companies appear here, never as top movers (E2)."),
+    section("Following", following.map(companyBlock), "No followed companies yet — pin a company in the dashboard to track it closely."),
     `## Roles for you\n\n${rolesForYou(companies)}`,
     section("Review queue", reviewItems.map((r) => `- **[${r.reason}]** ${r.displayName} — ${r.detail}`),
       "Empty — nothing needs your review."),
