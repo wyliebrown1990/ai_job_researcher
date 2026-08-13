@@ -132,6 +132,12 @@ export function createDashboardHandler(store: Store): (request: Request) => Resp
 
     if (request.method === "GET" && pathname === "/api/today") {
       const companies = store.allCompanies().map((company) => companySummary(store, company));
+      const nextActions = store.applications().filter((application) => application.nextActionAt)
+        .map((application) => ({
+          ...application,
+          company: store.getCompany(application.domain)?.displayName ?? application.domain,
+        }))
+        .sort((a, b) => (a.nextActionAt ?? "").localeCompare(b.nextActionAt ?? ""));
       const movers = [...companies].filter((company) => company.scoreDelta && company.scoreDelta !== 0)
         .sort((a, b) => Math.abs(b.scoreDelta ?? 0) - Math.abs(a.scoreDelta ?? 0)).slice(0, 6);
       const roleChanges = companies.filter((company) => company.matchingRolesCount > 0)
@@ -147,6 +153,7 @@ export function createDashboardHandler(store: Store): (request: Request) => Resp
         movers,
         roleChanges,
         following: companies.filter((company) => company.pinned),
+        nextActions,
       });
     }
 
