@@ -9,9 +9,21 @@ function job(p: Partial<JobPosting>): JobPosting {
 function profile(overrides: Partial<SearchProfile> = {}): SearchProfile {
   return {
     targetRoles: ["solutions-engineer", "sales-engineer", "product-manager", "partnerships", "forward-deployed"],
+    customTitlePhrases: [],
     acceptedLocations: [],
     remotePreference: "any",
     includedSectors: [],
+    sectorPreferenceStrength: "required",
+    businessModelThemes: [],
+    preferredStages: [],
+    stagePreferenceStrength: "preferred",
+    preferredTeamSizes: [],
+    teamSizePreferenceStrength: "preferred",
+    excludedCompanyDomains: [],
+    equityPriority: "not-a-factor",
+    compensationNote: "",
+    signalInterests: [],
+    searchBrief: "",
     excludedKeywords: [],
     minCompanyScore: 0,
     updatedAt: "2026-08-13T00:00:00Z",
@@ -71,5 +83,11 @@ describe("matchJob (E1/E3)", () => {
     expect(matchJob(job({ title: "Solutions Architect", location: "New York, NY" }), p)).toBeNull();
     expect(matchJob(job({ title: "Product Manager", location: "San Francisco", descriptionText: "6 years experience" }), p)).toBeNull();
     expect(matchJob(job({ title: "Product Manager", location: "Remote", isRemote: true, descriptionText: "10 years experience" }), p)).toBeNull();
+  });
+
+  test("matches a custom title only in the title, never in the description", () => {
+    const p = profile({ targetRoles: [], customTitlePhrases: ["deployment strategist"] });
+    expect(matchJob(job({ title: "Deployment Strategist", descriptionText: "" }), p)?.role).toBe("custom");
+    expect(matchJob(job({ title: "Technical Recruiter", descriptionText: "Hiring a deployment strategist" }), p)).toBeNull();
   });
 });

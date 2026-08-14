@@ -98,4 +98,22 @@ describe("renderDigest", () => {
     expect(section).toContain("Moving");
     expect(section).not.toContain("Quiet");
   });
+
+  test("orders roles by personal fit without changing their Growth Score", () => {
+    const growthFirst = company({ domain: "growth.example", displayName: "Growth first" });
+    growthFirst.score = scoreCompany(deriveComponents({ openRolesCount: 30 }, NOW));
+    const fitFirst = company({ domain: "fit.example", displayName: "Fit first" });
+    fitFirst.score = scoreCompany(deriveComponents({ openRolesCount: 1 }, NOW));
+    const role = (title: string, relevance: number) => ({
+      role: "product-manager" as const, matchScore: 1, matchedOn: ["title" as const], relevance: { included: true, score: relevance, label: "match" as const, reasons: ["test fit"] },
+      job: { externalId: title, title, location: "Remote", isRemote: true, url: `https://example.com/${title}`, retrievedAt: NOW.toISOString() },
+    });
+    const md = renderDigest({
+      runDate: "2026-08-08", reviewItems: [], now: NOW,
+      companies: [{ company: growthFirst, matches: [role("Growth role", 50)] }, { company: fitFirst, matches: [role("Fit role", 90)] }],
+    });
+    const roles = md.slice(md.indexOf("## Roles for you"));
+    expect(roles.indexOf("Fit first")).toBeLessThan(roles.indexOf("Growth first"));
+    expect(growthFirst.score.score).toBeGreaterThan(fitFirst.score.score);
+  });
 });

@@ -41,16 +41,31 @@ describe("local dashboard API", () => {
     expect(await today.json()).toMatchObject({ totals: { companies: 1, matchingRoles: 4 } });
 
     const detail = await handler(new Request("http://local/api/companies/example.ai"));
-    expect(await detail.json()).toMatchObject({ company: { displayName: "Example AI", score: 71 } });
+    expect(await detail.json()).toMatchObject({ company: { displayName: "Example AI", score: 71, relevance: { included: true } } });
   });
 
   test("persists profile and company mutations through the API", async () => {
     const { handler } = setup();
     const profile = await handler(new Request("http://local/api/profile", {
       method: "PUT", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ targetRoles: ["product-manager"], remotePreference: "remote-only", minCompanyScore: 60 }),
+      body: JSON.stringify({ targetRoles: ["product-manager"], remotePreference: "remote-only", minCompanyScore: 60, customTitlePhrases: ["AI deployment lead"], preferredStages: ["series-a"], searchBrief: "Customer-facing AI work." }),
     }));
     expect(await profile.json()).toMatchObject({ targetRoles: ["product-manager"], remotePreference: "remote-only" });
+
+    const brief = await handler(new Request("http://local/api/profile/brief"));
+    expect((await brief.json() as { brief: string }).brief).toContain("AI deployment lead");
+
+    const invalid = await handler(new Request("http://local/api/profile", {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ preferredStages: ["made-up-stage"] }),
+    }));
+    expect(invalid.status).toBe(400);
+
+    const oversized = await handler(new Request("http://local/api/profile", {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ searchBrief: "x".repeat(501) }),
+    }));
+    expect(oversized.status).toBe(400);
 
     const pin = await handler(new Request("http://local/api/companies/example.ai/pin", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pinned: true }),

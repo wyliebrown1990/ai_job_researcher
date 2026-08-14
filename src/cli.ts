@@ -97,7 +97,7 @@ async function cmdDiscover() {
   const store = new Store();
   console.log("🔎 Discovering fresh AI companies via web search…");
   try {
-    const candidates = await discoverCandidates();
+    const candidates = await discoverCandidates(store.getSearchProfile());
     const summary = ingestCandidates(store, candidates);
     await resolveAts(store, summary.newDomains);
     console.log(`Ingested ${candidates.length} candidate(s): +${summary.added} new, ${summary.refreshed} refreshed, ${summary.reviewed} to review.`);
@@ -112,7 +112,7 @@ async function cmdRun(force: boolean, discover: boolean, skipEmail: boolean) {
   const store = new Store();
   if (discover && discoveryConfigured()) {
     console.log("🔎 Discovering fresh companies first…");
-    const candidates = await discoverCandidates().catch((e) => { console.log(`   ⚠ discovery skipped: ${e.message}`); return []; });
+    const candidates = await discoverCandidates(store.getSearchProfile()).catch((e) => { console.log(`   ⚠ discovery skipped: ${e.message}`); return []; });
     if (candidates.length) {
       const s = ingestCandidates(store, candidates);
       await resolveAts(store, s.newDomains);

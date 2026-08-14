@@ -5,6 +5,8 @@ import { detectBoard, fetchBoard } from "./fetchers/ats/index.ts";
 import { nowIso } from "./fetchers/http.ts";
 import { matchBoard } from "./lib/roleMatch.ts";
 import { companyKey } from "./lib/identity.ts";
+import { buildDiscoveryContext } from "./discover.ts";
+import { evaluateRelevance } from "./lib/relevance.ts";
 import { renderDashboard } from "./dashboard.ts";
 import type { Company, RoleMatch, SearchProfile, TargetRole } from "./types.ts";
 
@@ -39,6 +41,7 @@ function companySummary(store: Store, company: Company) {
     latestFunding: company.latestFunding,
     pinned: Boolean(company.pinned),
     notes: company.notes ?? "",
+    relevance: evaluateRelevance(company, store.getSearchProfile()),
     atsDetection: company.atsDetection ?? (company.ats ? "available" : undefined),
     atsCheckedAt: company.atsCheckedAt,
     firstSeen: company.firstSeen,
@@ -62,14 +65,61 @@ function sanitizeProfile(input: unknown, current: SearchProfile): Omit<SearchPro
   if (!input || typeof input !== "object") return null;
   const value = input as Record<string, unknown>;
   const validRoles: TargetRole[] = ["solutions-engineer", "sales-engineer", "product-manager", "partnerships", "forward-deployed"];
+  const stages = ["pre-seed", "seed", "series-a", "series-b", "series-c", "series-d-plus", "growth", "unknown"] as const;
+  const teamSizes = ["1-10", "11-50", "51-200", "201-1000", "1000-plus"] as const;
+  const signals = ["funding", "traction", "hiring", "launches", "leadership", "open-roles"] as const;
   const roles = Array.isArray(value.targetRoles) && value.targetRoles.every((item) => typeof item === "string")
     ? value.targetRoles.filter((item): item is TargetRole => typeof item === "string" && validRoles.includes(item as TargetRole))
     : current.targetRoles;
-  const strings = (key: "acceptedLocations" | "includedSectors" | "excludedKeywords") =>
-    Array.isArray(value[key]) ? value[key].filter((item): item is string => typeof item === "string").slice(0, 20) : current[key];
+  const strings = <K extends keyof Pick<SearchProfile, "acceptedLocations" | "includedSectors" | "businessModelThemes" | "customTitlePhrases" | "excludedKeywords" | "excludedCompanyDomains">>(key: K, max = 20, maxLength = 80): SearchProfile[K] | null => {
+    if (!(key in value)) return current[key];
+    if (!Array.isArray(value[key]) || !value[key].every((item) => typeof item === "string")) return null;
+    const seen = new Set<string>();
+    const result: string[] = [];
+    for (const raw of value[key] as string[]) {
+      const item = raw.trim().replace(/\s+/g, " ");
+      if (!item) continue;
+      if (item.length > maxLength || result.length >= max) return null;
+      const normalized = item.toLowerCase();
+      if (!seen.has(normalized)) { seen.add(normalized); result.push(item); }
+    }
+    return result as SearchProfile[K];
+  };
+  const acceptedLocations = strings("acceptedLocations");
+  const includedSectors = strings("includedSectors");
+  const businessModelThemes = strings("businessModelThemes");
+  const customTitlePhrases = strings("customTitlePhrases", 12, 80);
+  const excludedKeywords = strings("excludedKeywords");
+  const excludedCompanyRaw = strings("excludedCompanyDomains", 20, 120);
+  if (!acceptedLocations || !includedSectors || !businessModelThemes || !customTitlePhrases || !excludedKeywords || !excludedCompanyRaw) return null;
+  const excludedCompanyDomains = excludedCompanyRaw.map((domain) => companyKey(domain));
+  if (excludedCompanyDomains.some((domain) => !domain)) return null;
+  const enumList = <T extends string>(key: string, allowed: readonly T[], fallback: T[]): T[] | null => {
+    if (!(key in value)) return fallback;
+    if (!Array.isArray(value[key]) || !value[key].every((item) => typeof item === "string" && allowed.includes(item as T))) return null;
+    return [...new Set(value[key] as T[])];
+  };
+  const preferredStages = enumList("preferredStages", stages, current.preferredStages);
+  const preferredTeamSizes = enumList("preferredTeamSizes", teamSizes, current.preferredTeamSizes);
+  const signalInterests = enumList("signalInterests", signals, current.signalInterests);
+  if (!preferredStages || !preferredTeamSizes || !signalInterests) return null;
+  const enumValue = <T extends string>(key: string, allowed: readonly T[], fallback: T): T | null => {
+    if (!(key in value)) return fallback;
+    return typeof value[key] === "string" && allowed.includes(value[key] as T) ? value[key] as T : null;
+  };
   const remotePreference = ["any", "remote-only", "remote-or-location", "location-only"].includes(String(value.remotePreference))
     ? String(value.remotePreference) as SearchProfile["remotePreference"]
     : current.remotePreference;
+  const sectorPreferenceStrength = enumValue("sectorPreferenceStrength", ["preferred", "required"] as const, current.sectorPreferenceStrength);
+  const stagePreferenceStrength = enumValue("stagePreferenceStrength", ["preferred", "required"] as const, current.stagePreferenceStrength);
+  const teamSizePreferenceStrength = enumValue("teamSizePreferenceStrength", ["preferred", "required"] as const, current.teamSizePreferenceStrength);
+  const equityPriority = enumValue("equityPriority", ["not-a-factor", "nice-to-have", "important", "must-discuss"] as const, current.equityPriority);
+  if (!sectorPreferenceStrength || !stagePreferenceStrength || !teamSizePreferenceStrength || !equityPriority) return null;
+  const searchBrief = !("searchBrief" in value) ? current.searchBrief : typeof value.searchBrief === "string" && value.searchBrief.trim().length <= 500
+    ? value.searchBrief.trim() : null;
+  const compensationNote = !("compensationNote" in value) ? current.compensationNote : typeof value.compensationNote === "string" && value.compensationNote.trim().length <= 300
+    ? value.compensationNote.trim() : null;
+  if (searchBrief === null || compensationNote === null) return null;
   const number = (key: "minCompanyScore" | "minExperienceYears" | "maxExperienceYears") => {
     const raw = value[key];
     if (raw === undefined || raw === "") return key === "minCompanyScore" ? current.minCompanyScore : undefined;
@@ -77,10 +127,22 @@ function sanitizeProfile(input: unknown, current: SearchProfile): Omit<SearchPro
   };
   return {
     targetRoles: roles,
-    acceptedLocations: strings("acceptedLocations"),
+    customTitlePhrases,
+    acceptedLocations,
     remotePreference,
-    includedSectors: strings("includedSectors"),
-    excludedKeywords: strings("excludedKeywords"),
+    includedSectors,
+    sectorPreferenceStrength,
+    businessModelThemes,
+    preferredStages,
+    stagePreferenceStrength,
+    preferredTeamSizes,
+    teamSizePreferenceStrength,
+    excludedCompanyDomains: excludedCompanyDomains as string[],
+    equityPriority,
+    compensationNote,
+    signalInterests,
+    searchBrief,
+    excludedKeywords,
     minCompanyScore: Math.min(100, number("minCompanyScore") as number),
     minExperienceYears: number("minExperienceYears") as number | undefined,
     maxExperienceYears: number("maxExperienceYears") as number | undefined,
@@ -94,6 +156,7 @@ type RoleEntry = {
   score: number;
   role: string;
   fitCaveat?: string;
+  relevance: ReturnType<typeof evaluateRelevance>;
   job: ReturnType<typeof matchBoard>[number]["job"];
   state: ReturnType<Store["getRoleState"]>;
 };
@@ -108,26 +171,23 @@ function roleSeniority(role: RoleEntry): "entry" | "mid" | "senior" {
 async function collectRoles(store: Store): Promise<RoleEntry[]> {
   const profile = store.getSearchProfile();
   const companies = store.allCompanies().filter((company) =>
-    (company.score?.score ?? 0) >= profile.minCompanyScore
-    && (profile.includedSectors.length === 0 || profile.includedSectors.some((sector) => company.category?.toLowerCase().includes(sector.toLowerCase()))),
+    (company.score?.score ?? 0) >= profile.minCompanyScore,
   );
   const batches = await Promise.all(companies.map(async (company) => {
     if (!company.ats) return [] as RoleEntry[];
     try {
       const jobs = store.cachedJobs(company.domain);
-      return matchBoard(jobs.length ? jobs : await fetchBoard(company.ats), profile).map((match) => ({
-        domain: company.domain,
-        displayName: company.displayName,
-        category: company.category,
-        score: company.score?.score ?? 0,
-        role: match.role,
-        fitCaveat: match.fitCaveat,
-        job: match.job,
-        state: store.getRoleState(company.domain, match.job.externalId),
-      }));
+      return matchBoard(jobs.length ? jobs : await fetchBoard(company.ats), profile).map((match) => {
+        const relevance = evaluateRelevance(company, profile, match.job);
+        return {
+          domain: company.domain, displayName: company.displayName, category: company.category,
+          score: company.score?.score ?? 0, role: match.role, fitCaveat: match.fitCaveat,
+          job: match.job, relevance, state: store.getRoleState(company.domain, match.job.externalId),
+        };
+      }).filter((entry) => entry.relevance.included);
     } catch { return [] as RoleEntry[]; }
   }));
-  return batches.flat().sort((a, b) => b.score - a.score);
+  return batches.flat().sort((a, b) => b.relevance.score - a.relevance.score || b.score - a.score);
 }
 
 function validApplicationStatus(value: unknown): value is import("./types.ts").ApplicationStatus {
@@ -219,6 +279,10 @@ export function createDashboardHandler(store: Store): (request: Request) => Resp
     }
 
     if (request.method === "GET" && pathname === "/api/profile") return json(store.getSearchProfile());
+    if (request.method === "GET" && pathname === "/api/profile/brief") {
+      const profile = store.getSearchProfile();
+      return json({ brief: buildDiscoveryContext(profile), updatedAt: profile.updatedAt });
+    }
 
     if (request.method === "POST" && pathname === "/api/companies") {
       const body = await request.json().catch(() => null) as { domain?: unknown; displayName?: unknown } | null;

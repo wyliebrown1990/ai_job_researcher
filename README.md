@@ -23,6 +23,19 @@ save/hide individual roles, keep a lightweight opportunity pipeline, read past
 digests, and resolve the review queue. Personal state is in `state/ajr.db`; back it
 up before a machine migration or reset.
 
+### Search criteria
+
+The Search criteria page stores an editable local profile for role families and
+custom title phrases, work arrangement/location, sectors/themes, company stage and
+size, equity context, avoid lists, signal interests, and an optional short brief.
+Blank criteria are neutral. Required rules keep incompatible roles out of the primary
+queue; preferred rules rank matches without hiding public facts that are unknown.
+
+The same normalized profile is used to render the dashboard's “Tomorrow’s research
+brief” preview and to build the user-specific context for `scan discover` and the
+scheduled `scan run --discover` path. It does not alter the evidence-backed Growth
+Score; personal fit is a separate, explainable ranking.
+
 ## Design
 
 The full loop design (goal, node graph, verification, evals, budgets, human-approval

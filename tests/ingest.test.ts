@@ -61,6 +61,22 @@ describe("ingestCandidates (DISCOVER → watchlist boundary)", () => {
     expect(s.added).toBe(1);
     expect(s.reviewed).toBe(1);
   });
+
+  test("retains LLM fit facts only when they cite a dated candidate source", () => {
+    const store = new Store(":memory:");
+    ingestCandidates(store, [cand({
+      domain: "fit.example", fitFacts: {
+        teamSize: "11-50", businessModelTags: ["enterprise", "agentic"], equityMentioned: true,
+        sourceUrls: ["https://techcrunch.com/x"],
+      },
+    })]);
+    expect(store.getCompany("fit.example")?.searchFacts).toMatchObject({ teamSize: "11-50", equityMentioned: true });
+
+    ingestCandidates(store, [cand({
+      domain: "unverified.example", fitFacts: { teamSize: "1-10", sourceUrls: ["https://not-a-source.example"] },
+    })]);
+    expect(store.getCompany("unverified.example")?.searchFacts).toBeUndefined();
+  });
 });
 
 describe("extractCandidates (LLM output parsing)", () => {

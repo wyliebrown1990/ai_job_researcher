@@ -3,7 +3,7 @@
 // domain-identity rule (E4), the rumor≠round rule (E5), and the evidence gate (C4).
 // No network, no LLM — just rules over structured input.
 
-import type { Candidate, Company, Evidence, FundingEvent, ReviewItem } from "./types.ts";
+import type { Candidate, Company, CompanySearchFacts, Evidence, FundingEvent, ReviewItem, TeamSizeBand } from "./types.ts";
 import { companyKey, mergeAliases } from "./lib/identity.ts";
 import { classifyFundingClaim, parseStage, parseUsdAmount } from "./lib/fundingLanguage.ts";
 import { config } from "./config.ts";
@@ -41,6 +41,17 @@ function buildFundingEvent(f: NonNullable<Candidate["funding"]>, evidence: Evide
     announcedDate: f.announcedDate ?? evidence.map((e) => e.date).filter(Boolean).sort().at(-1) ?? "",
     evidence,
   };
+}
+
+function verifiedFitFacts(candidate: Candidate): CompanySearchFacts | undefined {
+  const facts = candidate.fitFacts;
+  if (!facts?.sourceUrls?.length) return undefined;
+  const datedSources = new Set(candidate.sources.filter((source) => source.url && source.date).map((source) => source.url));
+  if (!facts.sourceUrls.some((url) => datedSources.has(url))) return undefined;
+  const teamSizes: TeamSizeBand[] = ["1-10", "11-50", "51-200", "201-1000", "1000-plus"];
+  const teamSize = teamSizes.includes(facts.teamSize as TeamSizeBand) ? facts.teamSize : undefined;
+  const businessModelTags = (facts.businessModelTags ?? []).filter((tag) => typeof tag === "string" && tag.trim()).map((tag) => tag.trim()).slice(0, 12);
+  return { teamSize, businessModelTags, equityMentioned: Boolean(facts.equityMentioned) };
 }
 
 export function ingestCandidates(
@@ -81,6 +92,7 @@ export function ingestCandidates(
     }
 
     const existing = store.getCompany(key);
+    const fitFacts = verifiedFitFacts(c);
     if (existing) {
       // E4: refresh, don't duplicate.
       existing.aliases = mergeAliases(existing.aliases, [c.displayName]);
@@ -92,6 +104,7 @@ export function ingestCandidates(
         store.appendFundingEvent(key, fundingEvent);
       }
       existing.judgments = { ...existing.judgments, ...c.judgments };
+      if (fitFacts) existing.searchFacts = { ...existing.searchFacts, ...fitFacts, businessModelTags: fitFacts.businessModelTags };
       if (c.description && !existing.description) existing.description = c.description;
       store.upsertCompany(existing);
       summary.refreshed++;
@@ -117,6 +130,7 @@ export function ingestCandidates(
       status: "watching",
       latestFunding: fundingEvent,
       judgments: c.judgments,
+      searchFacts: fitFacts,
       roleWatches: [],
       evidence,
       firstSeen: nowIso,

@@ -1,6 +1,7 @@
 // Role matching (E1/E3): map ATS postings to Wylie's target role families.
-// Matches over title AND JD body AND team (title-only matching misses real roles),
-// and attaches an honest fit_caveat (title match is not fit).
+// Matches curated role forms against titles only, and attaches an honest fit_caveat
+// (title match is not fit). Description matching is intentionally excluded because
+// it created high-volume false positives on live ATS boards.
 
 import type { JobPosting, RoleMatch, SearchProfile, TargetRole } from "../types.ts";
 import { config } from "../config.ts";
@@ -27,6 +28,10 @@ export function matchJob(job: JobPosting, profile?: SearchProfile): RoleMatch | 
   if (!matchesLocationPreference(job, profile)) return null;
   if (!matchesExperiencePreference(job, profile)) return null;
 
+  if (profile?.customTitlePhrases.some((phrase) => title.includes(phrase.toLowerCase()))) {
+    return { job, role: "custom", matchScore: 1, matchedOn: ["title"], fitCaveat: buildCaveat(job, "custom") };
+  }
+
   for (const [role, forms] of Object.entries(config.targetRoles) as [TargetRole, string[]][]) {
     if ((!profile || profile.targetRoles.includes(role)) && forms.some((form) => title.includes(form))) {
       return { job, role, matchScore: 1, matchedOn: ["title"], fitCaveat: buildCaveat(job, role) };
@@ -51,7 +56,7 @@ function matchesExperiencePreference(job: JobPosting, profile?: SearchProfile): 
   return !years || parseInt(years, 10) <= profile.maxExperienceYears;
 }
 
-function buildCaveat(job: JobPosting, role: TargetRole): string | undefined {
+function buildCaveat(job: JobPosting, role: TargetRole | "custom"): string | undefined {
   const caveats: string[] = [];
   const hay = `${job.title} ${job.descriptionText ?? ""}`;
 

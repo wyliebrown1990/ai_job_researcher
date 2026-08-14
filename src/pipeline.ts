@@ -10,6 +10,7 @@ import { deliver } from "./deliver.ts";
 import { resetFetchBudget, fetchesUsed, nowIso } from "./fetchers/http.ts";
 import { config } from "./config.ts";
 import type { Company, ReviewItem, RoleMatch } from "./types.ts";
+import { evaluateRelevance } from "./lib/relevance.ts";
 
 export interface RunResult {
   skipped: boolean;
@@ -55,7 +56,10 @@ export async function runDaily(
     const { company, matches, jobs } = await enrichAndScore(c, { isNew, now, profile });
     // Growth remains visible on the company side, while the role queue honors the
     // minimum company signal threshold in the active personal search profile.
-    const profileMatches = (company.score?.score ?? 0) >= profile.minCompanyScore ? matches : [];
+    const profileMatches = (company.score?.score ?? 0) >= profile.minCompanyScore
+      ? matches.map((match) => ({ ...match, relevance: evaluateRelevance(company, profile, match.job) }))
+        .filter((match) => match.relevance.included)
+      : [];
     // Application decisions belong to individual postings, not the company. Keep
     // scanning every role, but omit deliberately hidden/applied postings from the digest.
     const visibleMatches = profileMatches.filter((match) => {

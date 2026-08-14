@@ -79,14 +79,44 @@ export type TargetRole =
 /** Personal constraints used to decide which live ATS matches are worth surfacing. */
 export type RemotePreference = "any" | "remote-only" | "remote-or-location" | "location-only";
 
+/** The strength of a company-level search preference. Role location/remote rules
+ * remain hard constraints in the dedicated fields below. */
+export type PreferenceStrength = "preferred" | "required";
+export type TeamSizeBand = "1-10" | "11-50" | "51-200" | "201-1000" | "1000-plus";
+export type EquityPriority = "not-a-factor" | "nice-to-have" | "important" | "must-discuss";
+export type SignalInterest = "funding" | "traction" | "hiring" | "launches" | "leadership" | "open-roles";
+export type MatchedRole = TargetRole | "custom";
+
+/** Optional company facts that are retained only when the discovery response cites
+ * one of its dated sources. Missing data remains explicitly unknown. */
+export interface CompanySearchFacts {
+  teamSize?: TeamSizeBand;
+  businessModelTags: string[];
+  equityMentioned?: boolean;
+}
+
 export interface SearchProfile {
   targetRoles: TargetRole[];
+  /** Additional title phrases, matched against titles only for precision. */
+  customTitlePhrases: string[];
   /** Jobs without an explicit years requirement remain eligible. */
   minExperienceYears?: number;
   maxExperienceYears?: number;
   acceptedLocations: string[];
   remotePreference: RemotePreference;
   includedSectors: string[];
+  sectorPreferenceStrength: PreferenceStrength;
+  businessModelThemes: string[];
+  preferredStages: FundingStage[];
+  stagePreferenceStrength: PreferenceStrength;
+  preferredTeamSizes: TeamSizeBand[];
+  teamSizePreferenceStrength: PreferenceStrength;
+  excludedCompanyDomains: string[];
+  equityPriority: EquityPriority;
+  compensationNote: string;
+  signalInterests: SignalInterest[];
+  /** Bounded plain-language intent that supplements structured criteria. */
+  searchBrief: string;
   excludedKeywords: string[];
   minCompanyScore: number;
   updatedAt: string;
@@ -109,15 +139,24 @@ export interface JobPosting {
   retrievedAt: string;
 }
 
+/** Personal fit is an explainable ranking, never a change to Growth Score. */
+export interface SearchRelevance {
+  included: boolean;
+  score: number;
+  label: "strong" | "match" | "explore" | "outside-criteria";
+  reasons: string[];
+}
+
 export interface RoleMatch {
   job: JobPosting;
-  role: TargetRole;
+  role: MatchedRole;
   /** 0..1 how well the title+body match the target family. */
   matchScore: number;
   /** Honest caveat — title match is not fit (E1/E3). e.g. seniority, coding depth. */
   fitCaveat?: string;
   /** Whether the match came from the title, the JD body, or the department (E3). */
-  matchedOn: ("title" | "body" | "team")[];
+  matchedOn: "title"[];
+  relevance?: SearchRelevance;
 }
 
 /** A user's lightweight disposition for one live ATS posting. */
@@ -197,6 +236,7 @@ export interface Company {
    *  can't yet compute deterministically (E2: kept-manual). Persisted so re-scoring
    *  is reproducible between runs. */
   judgments?: { customerTraction?: number; productMomentum?: number };
+  searchFacts?: CompanySearchFacts;
 
   /** Role families to alert on even if not currently open (E1 role_watch). */
   roleWatches: TargetRole[];
@@ -238,6 +278,12 @@ export interface Candidate {
   namedCustomers?: string[];
   /** Model's 0..1 estimate of traction/product momentum (kept-manual signals). */
   judgments?: { customerTraction?: number; productMomentum?: number };
+  fitFacts?: {
+    teamSize?: TeamSizeBand;
+    businessModelTags?: string[];
+    equityMentioned?: boolean;
+    sourceUrls?: string[];
+  };
   /** Dated sources backing the above (evidence hard-gate, C4). */
   sources: { url: string; date?: string; primary?: boolean }[];
   notes?: string;

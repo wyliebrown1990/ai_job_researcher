@@ -126,9 +126,21 @@ type CompanyRow = { data: string; pinned: number; notes: string | null };
 function defaultSearchProfile(): SearchProfile {
   return {
     targetRoles: Object.keys(config.targetRoles) as SearchProfile["targetRoles"],
+    customTitlePhrases: [],
     acceptedLocations: [],
     remotePreference: "any",
     includedSectors: [],
+    sectorPreferenceStrength: "required",
+    businessModelThemes: [],
+    preferredStages: [],
+    stagePreferenceStrength: "preferred",
+    preferredTeamSizes: [],
+    teamSizePreferenceStrength: "preferred",
+    excludedCompanyDomains: [],
+    equityPriority: "not-a-factor",
+    compensationNote: "",
+    signalInterests: [],
+    searchBrief: "",
     excludedKeywords: [],
     minCompanyScore: 0,
     updatedAt: "",
@@ -279,7 +291,7 @@ export class Store {
     return { ...defaultSearchProfile(), ...JSON.parse(row.data) as Partial<SearchProfile>, updatedAt: row.updated_at };
   }
 
-  saveSearchProfile(profile: Omit<SearchProfile, "updatedAt">): SearchProfile {
+  saveSearchProfile(profile: Partial<Omit<SearchProfile, "updatedAt">>): SearchProfile {
     const saved: SearchProfile = { ...defaultSearchProfile(), ...profile, updatedAt: new Date().toISOString() };
     this.db.query(
       `INSERT INTO search_profile (id, data, updated_at) VALUES (1, ?, ?)

@@ -69,6 +69,6 @@ export async function enrichAndScore(
   company.score = scoreCompany(components, { isNew: opts.isNew, unresolved });
   company.lastUpdated = nowIso();
 
-  const watchHits = matches.filter((m) => company.roleWatches.includes(m.role));
+  const watchHits = matches.filter((m) => m.role !== "custom" && company.roleWatches.includes(m.role));
   return { company, matches, jobs, watchHits };
 }

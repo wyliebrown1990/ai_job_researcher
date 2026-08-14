@@ -73,7 +73,8 @@ function companyBlock(cd: CompanyDigest): string {
 function rolesForYou(companies: CompanyDigest[]): string {
   const withMatches = companies
     .filter((cd) => cd.matches.length > 0)
-    .sort((a, b) => (b.company.score?.score ?? 0) - (a.company.score?.score ?? 0));
+    .sort((a, b) => (b.matches[0]?.relevance?.score ?? 0) - (a.matches[0]?.relevance?.score ?? 0)
+      || (b.company.score?.score ?? 0) - (a.company.score?.score ?? 0));
   if (!withMatches.length) return "_No matching roles open across the watchlist today._";
 
   const out: string[] = [];
@@ -87,10 +88,11 @@ function rolesForYou(companies: CompanyDigest[]): string {
       seen.add(k);
       return true;
     });
-    for (const m of distinct.slice(0, 6)) {
+    for (const m of distinct.sort((a, b) => (b.relevance?.score ?? 0) - (a.relevance?.score ?? 0)).slice(0, 6)) {
       const caveat = m.fitCaveat ? `  \n  ⚠ ${m.fitCaveat}` : "";
       const date = m.job.publishedDate ? ` · ${m.job.publishedDate}` : "";
-      out.push(`- [${m.job.title}](${m.job.url}) — _${m.role}_ · ${m.job.location || "—"}${date}${caveat}`);
+      const fit = m.relevance ? ` · fit ${m.relevance.score}/100 (${m.relevance.reasons.join("; ")})` : "";
+      out.push(`- [${m.job.title}](${m.job.url}) — _${m.role}_ · ${m.job.location || "—"}${date}${fit}${caveat}`);
     }
     const extra = distinct.length - 6;
     if (extra > 0) out.push(`- …and ${extra} more distinct role(s)`);

@@ -27,6 +27,7 @@ src/
     identity.ts        # domain-based dedup + aliases (E4)
     fundingLanguage.ts # rumor≠round classifier + amount/stage parse (E5)
     roleMatch.ts       # title-first role matching + fit_caveat (E1/E3)
+    relevance.ts       # explainable personal fit; separate from Growth Score
     scoring.ts         # growth score + buckets (funding≠growth, E2)
     enrich.ts          # ENRICH & SCORE + JOB SCAN for one company (N5/N6)
   cli.ts               # entry: run / seed / jobs / detect / review / list
@@ -89,6 +90,9 @@ bun run scan review                          # review queue
 All tunable behavior — budgets, staleness windows, score weights, bucket thresholds,
 target-role forms, and the title exclusion list — lives in `config.ts`.
 
-The dashboard persists personal filters in SQLite's `search_profile` record, which
-overrides these defaults for subsequent scans. Back up `state/ajr.db` before resetting
-local state or moving machines.
+The dashboard persists editable search criteria in SQLite's `search_profile` record.
+The current profile is passed into `discoverCandidates()` for both `scan discover`
+and `scan run --discover`; `buildDiscoveryContext()` is also the in-product preview,
+so no separate prompt/context file can become stale. Required criteria exclude only
+from the primary queue, while preferred criteria remain visible when public facts are
+unknown. Back up `state/ajr.db` before resetting local state or moving machines.
