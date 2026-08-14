@@ -116,10 +116,11 @@ The digest and dashboard can sort by fit where the user is deciding what to purs
 
 ### Validation evidence — 2026-08-14
 
-- `bun run typecheck` and `bun test` passed: 64 tests across 14 files.
+- `bun run typecheck` and `bun test` passed: 68 tests across 15 files.
 - Local browser QA used `agent-browser` at `http://127.0.0.1:3000`: desktop and 390px screenshots captured at `/tmp/ajr-s5-final.png` and `/tmp/ajr-s5-mobile.png`; console/errors were clean.
 - A mixed profile saved, reloaded, produced the exact preview from `/api/profile/brief`, and was confirmed in `state/ajr.db`. The profile was reset to broad defaults after QA.
 - Invalid stage values and >500-character briefs return HTTP 400 in server tests; a malformed company domain surfaced `Use a valid search profile.` in browser QA and left the persisted profile unchanged.
+- Location selection uses the on-device, MIT-licensed Countries States Cities dataset rather than a finite hand-maintained list. Browser QA confirmed canonical city chips persist, raw values are rejected, and `London, UK` disambiguates to London, England, United Kingdom.
 
 ## Slop Findings (SlopReviewer — 2026-08-14)
 
