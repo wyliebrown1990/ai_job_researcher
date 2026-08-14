@@ -92,7 +92,7 @@ function rolesForYou(companies: CompanyDigest[]): string {
       const caveat = m.fitCaveat ? `  \n  ⚠ ${m.fitCaveat}` : "";
       const date = m.job.publishedDate ? ` · ${m.job.publishedDate}` : "";
       const fit = m.relevance ? ` · fit ${m.relevance.score}/100 (${m.relevance.reasons.join("; ")})` : "";
-      out.push(`- [${m.job.title}](${m.job.url}) — _${m.role}_ · ${m.job.location || "—"}${date}${fit}${caveat}`);
+      out.push(`- [${m.job.title}](${m.job.url}) — _${m.customTitlePhrase ?? m.role}_ · ${m.job.location || "—"}${date}${fit}${caveat}`);
     }
     const extra = distinct.length - 6;
     if (extra > 0) out.push(`- …and ${extra} more distinct role(s)`);

@@ -155,6 +155,7 @@ type RoleEntry = {
   category?: string;
   score: number;
   role: string;
+  customTitlePhrase?: string;
   fitCaveat?: string;
   relevance: ReturnType<typeof evaluateRelevance>;
   job: ReturnType<typeof matchBoard>[number]["job"];
@@ -181,7 +182,7 @@ async function collectRoles(store: Store): Promise<RoleEntry[]> {
         const relevance = evaluateRelevance(company, profile, match.job);
         return {
           domain: company.domain, displayName: company.displayName, category: company.category,
-          score: company.score?.score ?? 0, role: match.role, fitCaveat: match.fitCaveat,
+          score: company.score?.score ?? 0, role: match.role, customTitlePhrase: match.customTitlePhrase, fitCaveat: match.fitCaveat,
           job: match.job, relevance, state: store.getRoleState(company.domain, match.job.externalId),
         };
       }).filter((entry) => entry.relevance.included);

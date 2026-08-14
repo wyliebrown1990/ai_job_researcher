@@ -35,7 +35,7 @@ async function cmdJobs(slug: string, provider?: AtsProvider) {
   }
   for (const m of matches) {
     const pct = Math.round(m.matchScore * 100);
-    console.log(`  • ${m.job.title}  —  ${m.role} (${pct}% match, via ${m.matchedOn.join("+")})`);
+    console.log(`  • ${m.job.title}  —  ${m.customTitlePhrase ?? m.role} (${pct}% match, via ${m.matchedOn.join("+")})`);
     console.log(`    ${m.job.location}${m.job.publishedDate ? ` · posted ${m.job.publishedDate}` : ""}`);
     if (m.fitCaveat) console.log(`    ⚠ ${m.fitCaveat}`);
     console.log(`    ${m.job.url}`);

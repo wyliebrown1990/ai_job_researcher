@@ -28,8 +28,9 @@ export function matchJob(job: JobPosting, profile?: SearchProfile): RoleMatch | 
   if (!matchesLocationPreference(job, profile)) return null;
   if (!matchesExperiencePreference(job, profile)) return null;
 
-  if (profile?.customTitlePhrases.some((phrase) => title.includes(phrase.toLowerCase()))) {
-    return { job, role: "custom", matchScore: 1, matchedOn: ["title"], fitCaveat: buildCaveat(job, "custom") };
+  const customTitlePhrase = profile?.customTitlePhrases.find((phrase) => title.includes(phrase.toLowerCase()));
+  if (customTitlePhrase) {
+    return { job, role: "custom", customTitlePhrase, matchScore: 1, matchedOn: ["title"], fitCaveat: buildCaveat(job, "custom") };
   }
 
   for (const [role, forms] of Object.entries(config.targetRoles) as [TargetRole, string[]][]) {

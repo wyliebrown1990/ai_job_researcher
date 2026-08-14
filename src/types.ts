@@ -150,6 +150,8 @@ export interface SearchRelevance {
 export interface RoleMatch {
   job: JobPosting;
   role: MatchedRole;
+  /** The user's exact custom target title when role is "custom". */
+  customTitlePhrase?: string;
   /** 0..1 how well the title+body match the target family. */
   matchScore: number;
   /** Honest caveat — title match is not fit (E1/E3). e.g. seniority, coding depth. */

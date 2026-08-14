@@ -87,7 +87,9 @@ describe("matchJob (E1/E3)", () => {
 
   test("matches a custom title only in the title, never in the description", () => {
     const p = profile({ targetRoles: [], customTitlePhrases: ["deployment strategist"] });
-    expect(matchJob(job({ title: "Deployment Strategist", descriptionText: "" }), p)?.role).toBe("custom");
+    expect(matchJob(job({ title: "Deployment Strategist", descriptionText: "" }), p)).toMatchObject({
+      role: "custom", customTitlePhrase: "deployment strategist",
+    });
     expect(matchJob(job({ title: "Technical Recruiter", descriptionText: "Hiring a deployment strategist" }), p)).toBeNull();
   });
 });
