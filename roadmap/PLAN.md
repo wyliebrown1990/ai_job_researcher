@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: This is the master plan. Update sprint docs as you work.
 > Mark checkboxes in sprint files. Do NOT create separate status documents.
-> Last updated: 2026-08-13 by Codex
+> Last updated: 2026-08-14 by Codex
 
 ## Project Overview
 
@@ -32,6 +32,7 @@ multi-user SaaS, hosted product, or production-grade CRM.
 | Sprint 2 | Today dashboard and company intelligence | Completed |
 | Sprint 3 | Roles workspace and personal opportunity pipeline | Completed |
 | Sprint 4 | Follow-up loop, review triage, research retention, and polish | Completed |
+| Sprint 5 | Search criteria, personal relevance, and discovery alignment | Planned |
 
 ## Experience Map
 
