@@ -75,7 +75,7 @@ describe("matchJob (E1/E3)", () => {
   test("respects the active role, location, and experience preferences", () => {
     const p = profile({
       targetRoles: ["product-manager"],
-      acceptedLocations: ["New York"],
+      acceptedLocations: ["New York, NY"],
       remotePreference: "remote-or-location",
       maxExperienceYears: 8,
     });

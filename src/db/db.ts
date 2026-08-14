@@ -147,6 +147,16 @@ function defaultSearchProfile(): SearchProfile {
   };
 }
 
+function canonicalizeLocations(locations: string[] | undefined): string[] {
+  if (!locations) return [];
+  return [...new Set(locations.map((location) => {
+    const normalized = location.trim().toLowerCase();
+    return config.locationOptions.find((option) =>
+      option.toLowerCase() === normalized || option.toLowerCase().startsWith(`${normalized},`),
+    ) ?? location;
+  }))];
+}
+
 export class Store {
   readonly db: Database;
 
@@ -288,7 +298,8 @@ export class Store {
       "SELECT data, updated_at FROM search_profile WHERE id = 1",
     ).get();
     if (!row) return defaultSearchProfile();
-    return { ...defaultSearchProfile(), ...JSON.parse(row.data) as Partial<SearchProfile>, updatedAt: row.updated_at };
+    const profile = { ...defaultSearchProfile(), ...JSON.parse(row.data) as Partial<SearchProfile>, updatedAt: row.updated_at };
+    return { ...profile, acceptedLocations: canonicalizeLocations(profile.acceptedLocations) };
   }
 
   saveSearchProfile(profile: Partial<Omit<SearchProfile, "updatedAt">>): SearchProfile {

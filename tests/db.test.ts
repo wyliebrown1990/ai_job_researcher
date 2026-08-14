@@ -107,7 +107,7 @@ describe("Store personal signal foundation", () => {
 
     expect(db.getSearchProfile()).toMatchObject({
       targetRoles: ["product-manager"],
-      acceptedLocations: ["New York"],
+      acceptedLocations: ["New York, NY"],
       minCompanyScore: 55,
     });
   });

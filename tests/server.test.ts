@@ -55,11 +55,20 @@ describe("local dashboard API", () => {
     const brief = await handler(new Request("http://local/api/profile/brief"));
     expect((await brief.json() as { brief: string }).brief).toContain("AI deployment lead");
 
+    const options = await handler(new Request("http://local/api/profile/options"));
+    expect((await options.json() as { locations: string[] }).locations).toContain("New York, NY");
+
     const invalid = await handler(new Request("http://local/api/profile", {
       method: "PUT", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ preferredStages: ["made-up-stage"] }),
     }));
     expect(invalid.status).toBe(400);
+
+    const invalidLocation = await handler(new Request("http://local/api/profile", {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ acceptedLocations: ["New York City"] }),
+    }));
+    expect(invalidLocation.status).toBe(400);
 
     const oversized = await handler(new Request("http://local/api/profile", {
       method: "PUT", headers: { "Content-Type": "application/json" },

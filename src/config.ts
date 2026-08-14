@@ -65,6 +65,16 @@ export const config = {
     ],
   } satisfies Record<TargetRole, string[]>,
 
+  /** Canonical location labels used by the search-profile picker. Keeping these
+   * values centralized prevents typo variants from silently changing role filters. */
+  locationOptions: [
+    "New York, NY", "San Francisco, CA", "Los Angeles, CA", "San Diego, CA",
+    "Seattle, WA", "Portland, OR", "Denver, CO", "Austin, TX", "Dallas, TX",
+    "Chicago, IL", "Boston, MA", "Washington, DC", "Atlanta, GA", "Miami, FL",
+    "Raleigh, NC", "Toronto, ON", "Vancouver, BC", "London, UK", "Dublin, Ireland",
+    "Paris, France", "Berlin, Germany", "Amsterdam, Netherlands", "Singapore", "Sydney, Australia",
+  ],
+
   /** Titles containing any of these are never target matches, even if the JD body
    *  mentions target terms (recruiters/legal/marketing that hire or support these roles). */
   excludeTitles: [

@@ -7,6 +7,7 @@ import { matchBoard } from "./lib/roleMatch.ts";
 import { companyKey } from "./lib/identity.ts";
 import { buildDiscoveryContext } from "./discover.ts";
 import { evaluateRelevance } from "./lib/relevance.ts";
+import { config } from "./config.ts";
 import { renderDashboard } from "./dashboard.ts";
 import type { Company, RoleMatch, SearchProfile, TargetRole } from "./types.ts";
 
@@ -92,6 +93,7 @@ function sanitizeProfile(input: unknown, current: SearchProfile): Omit<SearchPro
   const excludedKeywords = strings("excludedKeywords");
   const excludedCompanyRaw = strings("excludedCompanyDomains", 20, 120);
   if (!acceptedLocations || !includedSectors || !businessModelThemes || !customTitlePhrases || !excludedKeywords || !excludedCompanyRaw) return null;
+  if (!acceptedLocations.every((location) => config.locationOptions.includes(location as typeof config.locationOptions[number]))) return null;
   const excludedCompanyDomains = excludedCompanyRaw.map((domain) => companyKey(domain));
   if (excludedCompanyDomains.some((domain) => !domain)) return null;
   const enumList = <T extends string>(key: string, allowed: readonly T[], fallback: T[]): T[] | null => {
@@ -280,6 +282,7 @@ export function createDashboardHandler(store: Store): (request: Request) => Resp
     }
 
     if (request.method === "GET" && pathname === "/api/profile") return json(store.getSearchProfile());
+    if (request.method === "GET" && pathname === "/api/profile/options") return json({ locations: config.locationOptions });
     if (request.method === "GET" && pathname === "/api/profile/brief") {
       const profile = store.getSearchProfile();
       return json({ brief: buildDiscoveryContext(profile), updatedAt: profile.updatedAt });
