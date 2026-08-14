@@ -5,6 +5,7 @@
     "": {
       "name": "ai_job_researcher",
       "dependencies": {
+        "@anrivera/countries-states-cities-database": "^1.0.0",
         "@anthropic-ai/sdk": "^0.116.0",
       },
       "devDependencies": {
@@ -14,6 +15,8 @@
     },
   },
   "packages": {
+    "@anrivera/countries-states-cities-database": ["@anrivera/countries-states-cities-database@1.0.0", "", {}, "sha512-C3OPMvITHEJoznbpTXHumgGoba8HwcDNvFfUBECLDuJfX44s0Rt1ieYMrQUBXafdzGWmn9gy+jl4ns15PtVMew=="],
+
     "@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.116.0", "", { "dependencies": { "json-schema-to-ts": "^3.1.1", "standardwebhooks": "^1.0.0" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-4UEapYQ+epLEMsAuLZDvW8ExVSOtHD8a7zTyLzhw0H9RXJ1eilPgmqhjwgcdg22diwx13spw6fJ4rONZ+bS7Ww=="],
 
     "@babel/runtime": ["@babel/runtime@7.29.7", "", {}, "sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw=="],

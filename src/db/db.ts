@@ -17,6 +17,7 @@ import type {
   Snapshot,
 } from "../types.ts";
 import { config } from "../config.ts";
+import { migrateLegacyLocation } from "../lib/locations.ts";
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS companies (
@@ -149,12 +150,7 @@ function defaultSearchProfile(): SearchProfile {
 
 function canonicalizeLocations(locations: string[] | undefined): string[] {
   if (!locations) return [];
-  return [...new Set(locations.map((location) => {
-    const normalized = location.trim().toLowerCase();
-    return config.locationOptions.find((option) =>
-      option.toLowerCase() === normalized || option.toLowerCase().startsWith(`${normalized},`),
-    ) ?? location;
-  }))];
+  return [...new Set(locations.map(migrateLegacyLocation))];
 }
 
 export class Store {

@@ -55,8 +55,9 @@ describe("local dashboard API", () => {
     const brief = await handler(new Request("http://local/api/profile/brief"));
     expect((await brief.json() as { brief: string }).brief).toContain("AI deployment lead");
 
-    const options = await handler(new Request("http://local/api/profile/options"));
-    expect((await options.json() as { locations: string[] }).locations).toContain("New York, NY");
+    const locations = await handler(new Request("http://local/api/locations?q=san%20francisco"));
+    expect((await locations.json() as { locations: { label: string }[] }).locations)
+      .toContainEqual(expect.objectContaining({ label: "San Francisco, CA, United States" }));
 
     const invalid = await handler(new Request("http://local/api/profile", {
       method: "PUT", headers: { "Content-Type": "application/json" },

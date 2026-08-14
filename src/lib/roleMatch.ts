@@ -5,6 +5,7 @@
 
 import type { JobPosting, RoleMatch, SearchProfile, TargetRole } from "../types.ts";
 import { config } from "../config.ts";
+import { matchesSelectedLocation } from "./locations.ts";
 
 const YEARS_RE = /\b(\d{1,2})\+?\s*(?:years|yrs)\b/i;
 const SENIOR_TITLE_RE = /\b(principal|staff|head\s+of|vp|vice\s+president|director|lead)\b/i;
@@ -43,9 +44,7 @@ export function matchJob(job: JobPosting, profile?: SearchProfile): RoleMatch | 
 
 function matchesLocationPreference(job: JobPosting, profile?: SearchProfile): boolean {
   if (!profile || profile.remotePreference === "any") return true;
-  const hasAcceptedLocation = profile.acceptedLocations.some((location) =>
-    job.location.toLowerCase().includes(location.toLowerCase()),
-  );
+  const hasAcceptedLocation = profile.acceptedLocations.some((location) => matchesSelectedLocation(job.location, location));
   if (profile.remotePreference === "remote-only") return Boolean(job.isRemote);
   if (profile.remotePreference === "remote-or-location") return Boolean(job.isRemote) || hasAcceptedLocation;
   return hasAcceptedLocation;

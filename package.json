@@ -15,6 +15,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@anrivera/countries-states-cities-database": "^1.0.0",
     "@anthropic-ai/sdk": "^0.116.0"
   }
 }

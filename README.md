@@ -30,6 +30,9 @@ custom title phrases, work arrangement/location, sectors/themes, company stage a
 size, equity context, avoid lists, signal interests, and an optional short brief.
 Blank criteria are neutral. Required rules keep incompatible roles out of the primary
 queue; preferred rules rank matches without hiding public facts that are unknown.
+Locations are selected from an on-device type-ahead backed by the MIT-licensed
+Countries States Cities Database (150k+ cities), so each saved location is a
+canonical city/region/country value rather than free text.
 
 The same normalized profile is used to render the dashboard's “Tomorrow’s research
 brief” preview and to build the user-specific context for `scan discover` and the
