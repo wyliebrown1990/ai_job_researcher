@@ -68,13 +68,12 @@ export interface GrowthScore {
   bucket: DigestBucket;
 }
 
-/** Wylie's target role families (from the brief). */
+/** Wylie's target role families: technical pre-sales and its leadership. */
 export type TargetRole =
-  | "solutions-engineer"
+  | "applied-ai"
   | "sales-engineer"
-  | "product-manager"
-  | "partnerships"
-  | "forward-deployed";
+  | "solutions-consultant"
+  | "se-leadership";
 
 /** Personal constraints used to decide which live ATS matches are worth surfacing. */
 export type RemotePreference = "any" | "remote-only" | "remote-or-location" | "location-only";

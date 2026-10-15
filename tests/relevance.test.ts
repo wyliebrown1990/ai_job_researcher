@@ -5,7 +5,7 @@ import type { Company, SearchProfile } from "../src/types.ts";
 
 function profile(overrides: Partial<SearchProfile> = {}): SearchProfile {
   return {
-    targetRoles: ["product-manager"], customTitlePhrases: [], acceptedLocations: [], remotePreference: "any",
+    targetRoles: ["sales-engineer"], customTitlePhrases: [], acceptedLocations: [], remotePreference: "any",
     includedSectors: [], sectorPreferenceStrength: "required", businessModelThemes: [],
     preferredStages: [], stagePreferenceStrength: "preferred", preferredTeamSizes: [], teamSizePreferenceStrength: "preferred",
     excludedCompanyDomains: [], equityPriority: "not-a-factor", compensationNote: "", signalInterests: [], searchBrief: "",

@@ -30,6 +30,8 @@ export async function fetchGreenhouse(token: string, withContent = true): Promis
     title: j.title ?? "",
     team: j.departments?.map((d) => d.name).filter(Boolean).join(", ") || undefined,
     location: j.location?.name ?? "",
+    // Greenhouse has no remote flag; boards put it in the location label.
+    isRemote: /\bremote\b/i.test(j.location?.name ?? "") || undefined,
     publishedDate: isoDate(j.first_published ?? j.updated_at),
     url: j.absolute_url ?? "",
     descriptionText: decodeAndStrip(j.content),

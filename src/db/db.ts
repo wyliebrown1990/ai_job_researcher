@@ -15,6 +15,7 @@ import type {
   RoleState,
   SearchProfile,
   Snapshot,
+  TargetRole,
 } from "../types.ts";
 import { config } from "../config.ts";
 import { migrateLegacyLocation } from "../lib/locations.ts";
@@ -124,12 +125,17 @@ CREATE INDEX IF NOT EXISTS idx_role_cache_domain ON role_cache(domain);
 
 type CompanyRow = { data: string; pinned: number; notes: string | null };
 
+const NYC_LOCATION = "New York City, NY, United States";
+const ALL_TARGET_ROLES = Object.keys(config.targetRoles) as TargetRole[];
+/** Families removed when the search narrowed to technical pre-sales. */
+const RETIRED_ROLES = new Set(["solutions-engineer", "product-manager", "partnerships", "forward-deployed"]);
+
 function defaultSearchProfile(): SearchProfile {
   return {
-    targetRoles: Object.keys(config.targetRoles) as SearchProfile["targetRoles"],
+    targetRoles: [...ALL_TARGET_ROLES],
     customTitlePhrases: [],
-    acceptedLocations: [],
-    remotePreference: "any",
+    acceptedLocations: [NYC_LOCATION],
+    remotePreference: "remote-or-location",
     includedSectors: [],
     sectorPreferenceStrength: "required",
     businessModelThemes: [],
@@ -145,6 +151,22 @@ function defaultSearchProfile(): SearchProfile {
     excludedKeywords: [],
     minCompanyScore: 0,
     updatedAt: "",
+  };
+}
+
+/** A profile saved before the pre-sales narrowing gets every new family and the
+ * NYC-or-remote arrangement; one saved after it only drops unknown role keys. */
+function migrateRetiredProfile(profile: SearchProfile): SearchProfile {
+  const stored = profile.targetRoles as string[];
+  if (!stored.some((role) => RETIRED_ROLES.has(role))) {
+    return { ...profile, targetRoles: profile.targetRoles.filter((role) => ALL_TARGET_ROLES.includes(role)) };
+  }
+  if (profile.remotePreference !== "any") return { ...profile, targetRoles: [...ALL_TARGET_ROLES] };
+  return {
+    ...profile,
+    targetRoles: [...ALL_TARGET_ROLES],
+    remotePreference: "remote-or-location",
+    acceptedLocations: profile.acceptedLocations.includes(NYC_LOCATION) ? profile.acceptedLocations : [...profile.acceptedLocations, NYC_LOCATION],
   };
 }
 
@@ -294,7 +316,7 @@ export class Store {
       "SELECT data, updated_at FROM search_profile WHERE id = 1",
     ).get();
     if (!row) return defaultSearchProfile();
-    const profile = { ...defaultSearchProfile(), ...JSON.parse(row.data) as Partial<SearchProfile>, updatedAt: row.updated_at };
+    const profile = migrateRetiredProfile({ ...defaultSearchProfile(), ...JSON.parse(row.data) as Partial<SearchProfile>, updatedAt: row.updated_at });
     return { ...profile, acceptedLocations: canonicalizeLocations(profile.acceptedLocations) };
   }
 

@@ -7,7 +7,8 @@ import { matchBoard } from "./lib/roleMatch.ts";
 import { companyKey } from "./lib/identity.ts";
 import { buildDiscoveryContext } from "./discover.ts";
 import { evaluateRelevance } from "./lib/relevance.ts";
-import { canonicalLocationLabel, searchLocations } from "./lib/locations.ts";
+import { canonicalLocationLabel, isRemoteJob, searchLocations } from "./lib/locations.ts";
+import { config } from "./config.ts";
 import { renderDashboard } from "./dashboard.ts";
 import type { Company, RoleMatch, SearchProfile, TargetRole } from "./types.ts";
 
@@ -65,7 +66,7 @@ function latestDigestPaths(): { date: string; path: string }[] {
 function sanitizeProfile(input: unknown, current: SearchProfile): Omit<SearchProfile, "updatedAt"> | null {
   if (!input || typeof input !== "object") return null;
   const value = input as Record<string, unknown>;
-  const validRoles: TargetRole[] = ["solutions-engineer", "sales-engineer", "product-manager", "partnerships", "forward-deployed"];
+  const validRoles = Object.keys(config.targetRoles) as TargetRole[];
   const stages = ["pre-seed", "seed", "series-a", "series-b", "series-c", "series-d-plus", "growth", "unknown"] as const;
   const teamSizes = ["1-10", "11-50", "51-200", "201-1000", "1000-plus"] as const;
   const signals = ["funding", "traction", "hiring", "launches", "leadership", "open-roles"] as const;
@@ -351,7 +352,7 @@ export function createDashboardHandler(store: Store): (request: Request) => Resp
       const includeRaw = url.searchParams.get("include") ?? "";
       const included = new Set((includeRaw === "true" ? "applied,hidden" : includeRaw).split(",").filter(Boolean));
       if (family) roles = roles.filter((role) => role.role === family);
-      if (remote === "true") roles = roles.filter((role) => role.job.isRemote);
+      if (remote === "true") roles = roles.filter((role) => isRemoteJob(role.job));
       if (location) roles = roles.filter((role) => role.job.location.toLowerCase().includes(location));
       if (seniority === "entry" || seniority === "mid" || seniority === "senior") {
         roles = roles.filter((role) => roleSeniority(role) === seniority);
