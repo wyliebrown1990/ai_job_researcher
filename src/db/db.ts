@@ -19,6 +19,7 @@ import type {
 } from "../types.ts";
 import { config } from "../config.ts";
 import { migrateLegacyLocation } from "../lib/locations.ts";
+import { nameKey } from "../lib/identity.ts";
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS companies (
@@ -121,6 +122,16 @@ CREATE TABLE IF NOT EXISTS role_cache (
   PRIMARY KEY (domain, external_id)
 );
 CREATE INDEX IF NOT EXISTS idx_role_cache_domain ON role_cache(domain);
+
+-- Names that verified to a domain (stage-2 resolver). A hit is a first lead that is
+-- still re-verified against the new story, never a merge on name alone (E4).
+CREATE TABLE IF NOT EXISTS name_domains (
+  name_key    TEXT PRIMARY KEY,
+  domain      TEXT NOT NULL,
+  method      TEXT NOT NULL,
+  confidence  REAL NOT NULL,
+  resolved_at TEXT NOT NULL
+);
 `;
 
 type CompanyRow = { data: string; pinned: number; notes: string | null };
@@ -151,6 +162,25 @@ function defaultSearchProfile(): SearchProfile {
     excludedKeywords: [],
     minCompanyScore: 0,
     updatedAt: "",
+  };
+}
+
+function reviewKey(item: ReviewItem): string {
+  return `${item.reason}:${item.domain ?? `name:${nameKey(item.displayName)}`}`;
+}
+
+/** Fold a newer sighting into an existing item, keeping its history and retry state. */
+function mergeReviewItems(existing: ReviewItem, incoming: ReviewItem): ReviewItem {
+  const evidence = [...existing.evidence];
+  for (const item of incoming.evidence) if (!evidence.some((e) => e.sourceUrl === item.sourceUrl)) evidence.push(item);
+  return {
+    ...existing,
+    detail: incoming.detail,
+    evidence,
+    candidates: incoming.candidates?.length ? incoming.candidates : existing.candidates,
+    context: incoming.context ?? existing.context,
+    sightings: (existing.sightings ?? 1) + (incoming.sightings ?? 1),
+    lastSeenAt: [existing.lastSeenAt, existing.createdAt, incoming.lastSeenAt, incoming.createdAt].filter(Boolean).sort().at(-1),
   };
 }
 
@@ -185,6 +215,7 @@ export class Store {
     this.db.exec(SCHEMA);
     this.ensureColumn("companies", "pinned", "INTEGER NOT NULL DEFAULT 0");
     this.ensureColumn("companies", "notes", "TEXT");
+    this.collapseDuplicateReviewItems();
   }
 
   private ensureColumn(table: "companies", column: "pinned" | "notes", definition: string): void {
@@ -465,11 +496,63 @@ export class Store {
     ).all(domain).map((row) => JSON.parse(row.data) as JobPosting);
   }
 
+  /** Add a review item, or merge it into the open item for the same company and reason
+   *  (a company re-discovered daily must not pile up as duplicate to-dos). */
   addReviewItem(item: ReviewItem): void {
+    const key = reviewKey(item);
+    const open = this.openReviewRows().find((row) => reviewKey(row.item) === key);
+    if (open) {
+      this.updateReviewItem(open.id, mergeReviewItems(open.item, item));
+      return;
+    }
     this.db.query(
       `INSERT INTO review_queue (domain, name, reason, data, created_at)
        VALUES (?, ?, ?, ?, ?)`,
     ).run(item.domain ?? null, item.displayName, item.reason, JSON.stringify(item), item.createdAt);
+  }
+
+  updateReviewItem(id: number, item: ReviewItem): void {
+    this.db.query("UPDATE review_queue SET data = ?, domain = ?, name = ? WHERE id = ?")
+      .run(JSON.stringify(item), item.domain ?? null, item.displayName, id);
+  }
+
+  /** Close open no_domain items for a company that now has a verified domain. */
+  resolveNoDomainItemsFor(names: string[]): number {
+    const keys = new Set(names.map(nameKey).filter(Boolean));
+    let closed = 0;
+    for (const row of this.openReviewRows()) {
+      if (row.item.reason === "no_domain" && keys.has(nameKey(row.item.displayName)) && this.resolveReviewItem(row.id)) closed++;
+    }
+    return closed;
+  }
+
+  /** One-time cleanup for queues filled before items were merged: keep the newest per key. */
+  collapseDuplicateReviewItems(): number {
+    const seen = new Map<string, { id: number; item: ReviewItem }>();
+    let collapsed = 0;
+    for (const row of this.openReviewRows()) { // newest first
+      const key = reviewKey(row.item);
+      const keep = seen.get(key);
+      if (!keep) { seen.set(key, row); continue; }
+      this.updateReviewItem(keep.id, mergeReviewItems(row.item, keep.item));
+      keep.item = mergeReviewItems(row.item, keep.item);
+      if (this.resolveReviewItem(row.id)) collapsed++;
+    }
+    return collapsed;
+  }
+
+  getNameDomain(name: string): string | undefined {
+    return this.db.query<{ domain: string }, [string]>("SELECT domain FROM name_domains WHERE name_key = ?").get(nameKey(name))?.domain;
+  }
+
+  rememberNameDomain(name: string, domain: string, method: string, confidence: number): void {
+    const key = nameKey(name);
+    if (!key) return;
+    this.db.query(
+      `INSERT INTO name_domains (name_key, domain, method, confidence, resolved_at) VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(name_key) DO UPDATE SET domain = excluded.domain, method = excluded.method,
+         confidence = excluded.confidence, resolved_at = excluded.resolved_at`,
+    ).run(key, domain, method, confidence, new Date().toISOString());
   }
 
   openReviewItems(): ReviewItem[] {

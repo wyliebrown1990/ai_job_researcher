@@ -3,12 +3,15 @@
 //   bun run scan detect <slug>                                    # auto-detect ATS
 //   bun run scan review                                           # show review queue
 //   bun run scan list                                             # show watchlist
+//   bun run scan resolve                                          # retry unresolved domains + missing job boards
 //
 // The full daily loop (ingest→…→deliver) is orchestrated separately; these commands
 // exercise the deterministic nodes against live data.
 
 import type { AtsProvider } from "./types.ts";
 import { fetchBoard, detectBoard } from "./fetchers/ats/index.ts";
+import { liveResolveDeps, resolveCandidates, resolveCareersFor, runMaintenance } from "./resolve/index.ts";
+import type { Candidate } from "./types.ts";
 import { matchBoard } from "./lib/roleMatch.ts";
 import { fetchesUsed } from "./fetchers/http.ts";
 import { Store } from "./db/db.ts";
@@ -31,7 +34,7 @@ async function cmdJobs(slug: string, provider?: AtsProvider) {
   const matches = matchBoard(jobs);
   console.log(`\n📋 ${slug}  [${ref.provider}]  —  ${jobs.length} open roles, ${matches.length} match your target titles\n`);
   if (matches.length === 0) {
-    console.log("  (no Solutions/Sales-Eng/PM/Partner/Forward-Deployed roles open right now)");
+    console.log("  (no NYC/remote technical pre-sales roles open right now)");
   }
   for (const m of matches) {
     const pct = Math.round(m.matchScore * 100);
@@ -74,18 +77,27 @@ function cmdSeed(path?: string) {
   store.close();
 }
 
-/** Best-effort ATS resolution for a new company: try the domain and its first label. */
-async function resolveAts(store: Store, domains: string[]) {
-  for (const domain of domains) {
-    const candidates = [domain, domain.split(".")[0]!].filter(Boolean);
-    for (const slug of candidates) {
-      const found = await detectBoard(slug).catch(() => null);
-      if (found) {
-        const co = store.getCompany(domain);
-        if (co) { co.ats = found.ref; store.upsertCompany(co); }
-        break;
-      }
-    }
+/** Stages 2-3 then ingest then stage 2b: domains verified before ingest, boards after. */
+async function resolveAndIngest(store: Store, candidates: Candidate[]) {
+  const deps = liveResolveDeps();
+  const r = await resolveCandidates(store, candidates, deps);
+  const summary = ingestCandidates(store, candidates);
+  const boards = await resolveCareersFor(store, summary.newDomains, deps);
+  console.log(`   domains: ${r.verified} confirmed, ${r.resolved} resolved, ${r.unresolved} to review · ${boards}/${summary.newDomains.length} new job board(s) found`);
+  return summary;
+}
+
+async function maintain(store: Store) {
+  const m = await runMaintenance(store, liveResolveDeps());
+  console.log(`🩺 Maintenance: ${m.backlogResolved}/${m.backlogTried} review item(s) resolved · ${m.atsFound}/${m.atsChecked} job board(s) found`);
+}
+
+async function cmdResolve() {
+  const store = new Store();
+  try {
+    await maintain(store);
+  } finally {
+    store.close();
   }
 }
 
@@ -98,8 +110,7 @@ async function cmdDiscover() {
   console.log("🔎 Discovering fresh AI companies via web search…");
   try {
     const candidates = await discoverCandidates(store.getSearchProfile());
-    const summary = ingestCandidates(store, candidates);
-    await resolveAts(store, summary.newDomains);
+    const summary = await resolveAndIngest(store, candidates);
     console.log(`Ingested ${candidates.length} candidate(s): +${summary.added} new, ${summary.refreshed} refreshed, ${summary.reviewed} to review.`);
   } catch (e) {
     console.log(`⚠ discovery failed: ${(e as Error).message}`);
@@ -114,11 +125,11 @@ async function cmdRun(force: boolean, discover: boolean, skipEmail: boolean) {
     console.log("🔎 Discovering fresh companies first…");
     const candidates = await discoverCandidates(store.getSearchProfile()).catch((e) => { console.log(`   ⚠ discovery skipped: ${e.message}`); return []; });
     if (candidates.length) {
-      const s = ingestCandidates(store, candidates);
-      await resolveAts(store, s.newDomains);
+      const s = await resolveAndIngest(store, candidates);
       console.log(`   +${s.added} new, ${s.refreshed} refreshed, ${s.reviewed} to review`);
     }
   }
+  await maintain(store).catch((e) => console.log(`   ⚠ maintenance skipped: ${(e as Error).message}`));
   const res = await runDaily(store, { force, skipEmail });
   if (res.skipped) {
     console.log(`Run for ${res.runDate} already completed (idempotent). Use --force to re-run.`);
@@ -147,8 +158,9 @@ async function main() {
     case "serve": cmdServe(flags.port); break;
     case "review": cmdReview(); break;
     case "list": cmdList(); break;
+    case "resolve": await cmdResolve(); break;
     default:
-      console.log("Usage: bun run scan <run|discover|seed|jobs|detect|review|list|serve> [slug] [--provider p] [--force] [--discover] [--no-email] [--port N]");
+      console.log("Usage: bun run scan <run|discover|resolve|seed|jobs|detect|review|list|serve> [slug] [--provider p] [--force] [--discover] [--no-email] [--port N]");
   }
 }
 

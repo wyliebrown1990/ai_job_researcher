@@ -62,6 +62,23 @@ SQLite persistence + run idempotency. These are the parts we can verify reliably
 server-side web-search tool surfaces fresh candidates; the **pure** `ingest.ts`
 boundary applies the deterministic rules before anything reaches the watchlist.
 
+**Company resolution (`resolve/`, deterministic first):** discovery returns news, so
+each name is resolved before ingest — links in the source articles, then name-based
+domains (`acme.ai`, `acme.com`, `getacme.com`…), then a search fallback — and a domain
+is used only after its live homepage verifies (reachable, not parked, names the
+company, matches the story). Below `config.resolve.autoAcceptConfidence` the company
+goes to review with its best verified domains as one-click promotes. Job boards are
+read from the company's own homepage/careers page (Ashby, Greenhouse, Lever, Workable,
+Rippling); a guessed board slug is used only if its postings mention the company.
+`scan resolve` (also run before every `scan run`) retries the no_domain backlog on a
+1/3/7/14/30-day backoff, re-checks boardless companies weekly, and re-detects boards
+that keep failing. Repeat review items merge instead of duplicating.
+
+Search fallback: `BRAVE_SEARCH_API_KEY` (optional) enables Brave Search; otherwise a
+short Claude web-search call (`AJR_RESOLVE_MODEL`, default `claude-opus-5-5`, low effort,
+capped at `config.resolve.maxSearchLookupsPerRun` per run). Set `AJR_RESOLVE_WITH_LLM=0`
+to turn the Claude fallback off.
+
 **Still deferred to the LLM:** semantic body-level role fit and richer
 traction/product-momentum scoring (design §"kept manual").
 
@@ -69,7 +86,7 @@ traction/product-momentum scoring (design §"kept manual").
 
 ```bash
 bun install
-bun test            # 33 unit tests across identity/funding/roleMatch/scoring/digest/ingest
+bun test            # unit tests (identity, funding, roleMatch, scoring, digest, ingest, resolve, …)
 bun run typecheck   # tsc --noEmit, strict
 bun run scan seed                            # bootstrap watchlist from data/seed.json
 bun run scan discover                        # LLM finds fresh companies (needs ANTHROPIC_API_KEY)
@@ -83,6 +100,7 @@ bun run scan jobs anthropic --provider greenhouse
 bun run scan detect <slug>                   # which ATS a slug uses
 bun run scan list                            # watchlist
 bun run scan review                          # review queue
+bun run scan resolve                         # retry unresolved domains + missing job boards
 ```
 
 ## Config knobs

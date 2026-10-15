@@ -7,7 +7,8 @@ import type { Company, JobPosting, RoleMatch, Evidence, SearchProfile } from "..
 import { fetchBoard } from "../fetchers/ats/index.ts";
 import { matchBoard } from "./roleMatch.ts";
 import { deriveComponents, scoreCompany, type SignalInputs } from "./scoring.ts";
-import { nowIso } from "../fetchers/http.ts";
+import { HttpError, nowIso } from "../fetchers/http.ts";
+import { config } from "../config.ts";
 
 export interface EnrichResult {
   company: Company;
@@ -47,8 +48,19 @@ export async function enrichAndScore(
       matches = matchBoard(jobs, opts.profile);
       if (dayAdvanced) company.priorOpenRolesCount = company.openRolesCount;
       company.openRolesCount = jobs.length;
-    } catch {
-      // leave prior counts intact
+      company.atsFailures = 0;
+    } catch (error) {
+      // Leave prior counts intact. A board that keeps answering 4xx has usually moved
+      // (new ATS or renamed slug): drop it so maintenance re-detects from the site.
+      if (error instanceof HttpError && error.status >= 400 && error.status < 500) {
+        company.atsFailures = (company.atsFailures ?? 0) + 1;
+        if (company.atsFailures >= config.resolve.boardFailureLimit) {
+          company.ats = undefined;
+          company.atsDetection = "not-detected";
+          company.atsCheckedAt = undefined;
+          company.atsFailures = 0;
+        }
+      }
     }
   }
 

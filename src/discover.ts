@@ -13,10 +13,10 @@ import type { Candidate, SearchProfile } from "./types.ts";
 const MODEL = process.env.AJR_LLM_MODEL ?? "claude-opus-5";
 
 const SYSTEM = `You are a research analyst tracking the AI industry for a technical
-go-to-market professional (Sales Engineer / Solutions Engineer / Product Manager /
-Partnerships). Your job: surface AI companies showing REAL, quantifiable momentum —
-prioritizing companies likely to hire those roles (enterprise/agentic/applied AI over
-pure research labs).
+pre-sales professional (Sales Engineer / Solutions Engineer / Solutions Consultant /
+Applied AI Consultant). Your job: surface AI companies showing REAL, quantifiable
+momentum — prioritizing companies likely to hire those roles (enterprise/agentic/applied
+AI selling to businesses, over pure research labs).
 
 Rules you MUST follow:
 - Prefer companies with a dated funding event or product launch in the last ~4 days.
@@ -24,6 +24,10 @@ Rules you MUST follow:
   ("in talks", "reportedly", "is seeking") — report the exact phrasing in claimText.
 - Only include a company's "domain" if you are confident it is their real primary
   domain. NEVER guess a domain. Omit it if unsure.
+- When a source you read links to the company's own website (press releases usually
+  do), return that link as "website" and the page that contained it as
+  "websiteSourceUrl". This is how the company is identified later, so prefer it over
+  leaving both empty.
 - Every company needs at least one dated source URL. No source, no company.
 - Keep customerTraction/productMomentum estimates conservative (0..1); aspirational
   goals ("targeting 100 customers") are not traction.`;
@@ -81,6 +85,8 @@ Return ONLY a JSON array (in a \`\`\`json code block) of objects with this shape
 [{
   "displayName": string,
   "domain": string | null,               // real primary domain, or null if unsure
+  "website": string | null,              // company site as linked from a source you read
+  "websiteSourceUrl": string | null,     // the source page that linked it
   "description": string,
   "category": string,
   "hq": string | null,

@@ -10,7 +10,8 @@ export const config = {
   /** Stop conditions / budgets (design §6). */
   limits: {
     maxWallClockMs: 30 * 60 * 1000,
-    maxFetchesPerRun: 300,
+    // Domain + careers resolution adds a handful of page fetches per company.
+    maxFetchesPerRun: 600,
     maxNewCandidatesPerDay: 50,
     maxRefreshPerDay: 100,
     maxRetriesPerItem: 2,
@@ -115,6 +116,47 @@ export const config = {
     "people partner", "people ops", "office manager", "executive assistant", "events", "event ",
     "product manager", "product management", "forward deployed", "forward-deployed",
   ],
+
+  /** Stage 2-4: resolving discovered names to verified domains and careers boards.
+   *  Every guessed or searched domain must pass page verification before it is used. */
+  resolve: {
+    /** Source articles fetched per company to mine outbound links to its site. */
+    maxSourcePages: 3,
+    /** Name-derived domains tried (acme.ai, acme.com, getacme.com, ...). */
+    maxGuesses: 8,
+    /** Careers pages fetched per company while looking for an ATS link. */
+    maxCareersPages: 3,
+    /** At or above this a domain is used automatically; below it goes to review. */
+    autoAcceptConfidence: 0.7,
+    /** Weaker verified candidates are still offered in review as one-click promotes. */
+    suggestConfidence: 0.35,
+    /** Background retries of open no_domain review items per run, and their backoff (days). */
+    maxBacklogPerRun: 20,
+    retryBackoffDays: [1, 3, 7, 14, 30],
+    /** Companies without a readable board are re-checked this often (they often add one after raising). */
+    atsRecheckDays: 7,
+    maxAtsRechecksPerRun: 25,
+    /** Consecutive failed board fetches before the board is treated as moved and re-detected. */
+    boardFailureLimit: 3,
+    /** Stage 3 search fallback (Brave if BRAVE_SEARCH_API_KEY is set, then Claude) per run. */
+    maxSearchLookupsPerRun: 10,
+    llmModel: process.env.AJR_RESOLVE_MODEL ?? "claude-opus-5-5",
+    /** Hosts that are never a company's own site: news, wires, social, data vendors, investors' tools. */
+    nonCompanyHosts: [
+      "techcrunch.com", "businesswire.com", "prnewswire.com", "globenewswire.com", "accesswire.com",
+      "einpresswire.com", "newswire.com", "prweb.com", "venturebeat.com", "forbes.com", "fortune.com",
+      "bloomberg.com", "reuters.com", "wsj.com", "nytimes.com", "theinformation.com", "axios.com",
+      "cnbc.com", "theverge.com", "wired.com", "siliconangle.com", "finsmes.com", "tech.eu",
+      "sifted.eu", "geekwire.com", "fastcompany.com", "businessinsider.com", "yahoo.com", "msn.com",
+      "crunchbase.com", "pitchbook.com", "cbinsights.com", "tracxn.com", "dealroom.co", "wellfound.com",
+      "angel.co", "ycombinator.com", "producthunt.com", "linkedin.com", "twitter.com", "x.com",
+      "facebook.com", "instagram.com", "youtube.com", "youtu.be", "tiktok.com", "medium.com",
+      "substack.com", "github.com", "google.com", "apple.com", "wikipedia.org", "bit.ly", "lnkd.in",
+      "t.co", "calendly.com", "hubspot.com", "mailchimp.com", "doubleclick.net", "googletagmanager.com",
+      "gstatic.com", "cloudflare.com", "w3.org", "schema.org", "greenhouse.io", "ashbyhq.com",
+      "lever.co", "workable.com", "rippling.com",
+    ],
+  },
 
   /** Seniority ceiling used to raise a fit_caveat on very senior roles (E3). */
   seniorityCaveatYears: 8,

@@ -42,6 +42,16 @@ brief” preview and to build the user-specific context for `scan discover` and 
 scheduled `scan run --discover` path. It does not alter the evidence-backed Growth
 Score; personal fit is a separate, explainable ranking.
 
+## How companies get domains and job boards
+
+Discovery finds companies in funding news, which rarely states a company's website.
+A resolver then finds and **verifies** each domain (press-release links → obvious
+name-based domains → search fallback), reads the job board straight from the
+company's own careers page, and keeps the list healthy: unresolved names are retried
+on a backoff, boardless companies are re-checked weekly, and repeat review items merge.
+Only names it can't verify reach the review queue, with likely domains offered as
+one-click choices. Details in [src/README.md](src/README.md).
+
 ## Design
 
 The full loop design (goal, node graph, verification, evals, budgets, human-approval

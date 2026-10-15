@@ -68,13 +68,18 @@ export function ingestCandidates(
     const key = companyKey(c.domain);
     const evidence = toEvidence(c.sources, c.description ?? c.displayName);
 
-    // E4: no resolvable domain → review queue, never a guessed watchlist entry.
+    // E4: no verified domain → review queue, never a guessed watchlist entry. The
+    // resolver's best verified candidates ride along as one-click promotes.
     if (!key) {
-      store.addReviewItem(reviewItem(c, "no_domain",
-        "No resolvable company domain — resolve it before adding to the watchlist.", evidence, nowIso));
+      const candidates = c.resolution?.candidates ?? [];
+      const detail = candidates.length
+        ? `Domain not confirmed automatically — likely ${candidates.map((x) => `${x.domain} (${Math.round(x.confidence * 100)}%)`).join(", ")}. Confirm one to add it.`
+        : "No verifiable company domain found yet — retried automatically, or enter it to add the company.";
+      store.addReviewItem({ ...reviewItem(c, "no_domain", detail, evidence, nowIso), candidates, context: { description: c.description, category: c.category } });
       summary.reviewed++;
       continue;
     }
+    store.resolveNoDomainItemsFor([c.displayName]);
 
     // E5: classify funding language. A rumor is never a funding event.
     let fundingEvent: FundingEvent | undefined;
@@ -132,6 +137,7 @@ export function ingestCandidates(
       judgments: c.judgments,
       searchFacts: fitFacts,
       roleWatches: [],
+      domainSource: c.resolution?.method ? { method: c.resolution.method, confidence: c.resolution.confidence, evidenceUrl: c.resolution.evidenceUrl } : undefined,
       evidence,
       firstSeen: nowIso,
       lastUpdated: nowIso,

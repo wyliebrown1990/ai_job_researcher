@@ -29,7 +29,9 @@ function setup() {
   };
   store.upsertCompany(company);
   store.writeSnapshot(company, "2026-08-13", 4);
-  return { store, handler: createDashboardHandler(store) };
+  // Offline resolver: no site or board is reachable in tests.
+  const resolveDeps = { fetchPage: async () => null, fetchBoard: async () => { throw new Error("offline"); } };
+  return { store, handler: createDashboardHandler(store, { resolveDeps }) };
 }
 
 afterEach(() => { while (stores.length) stores.pop()!.close(); });

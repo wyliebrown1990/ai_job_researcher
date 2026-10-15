@@ -201,8 +201,18 @@ export interface Snapshot {
 
 export type CompanyStatus = "watching" | "promising" | "applied" | "archived";
 
+/** How a company's domain was found (stage-2 resolver). */
+export type DomainMethod = "provided" | "cache" | "source-link" | "source-host" | "guess" | "search" | "llm" | "manual";
+
+export interface DomainCandidateSummary {
+  domain: string;
+  confidence: number;
+  method: DomainMethod;
+  evidenceUrl?: string;
+}
+
 /** ATS provider for a company's job board. */
-export type AtsProvider = "ashby" | "greenhouse" | "lever" | "unknown";
+export type AtsProvider = "ashby" | "greenhouse" | "lever" | "workable" | "rippling" | "unknown";
 
 export interface Company {
   /** Canonical identity = normalized primary domain (E4). Never the display name. */
@@ -225,6 +235,16 @@ export interface Company {
   /** Local manual-add progress; a missing board is honest research-only coverage. */
   atsDetection?: "checking" | "available" | "not-detected";
   atsCheckedAt?: string;
+  /** How the board was found: a link on the company's own site, or a verified slug guess. */
+  atsSource?: "homepage-link" | "careers-page" | "slug-guess" | "manual";
+  /** Consecutive failed board fetches; past config.resolve.boardFailureLimit the board is re-detected. */
+  atsFailures?: number;
+  /** The company's own careers page, kept even when its ATS isn't one we can read. */
+  careersUrl?: string;
+  /** A recognised ATS we have no reader for (e.g. "bamboohr"), so roles stay manual. */
+  unsupportedAts?: string;
+  /** How the canonical domain was established (stage-2 resolver), for auditability. */
+  domainSource?: { method: DomainMethod; confidence: number; evidenceUrl?: string };
   openRolesCount?: number;
   /** Open-roles count at the previous run, for hiring-velocity delta. */
   priorOpenRolesCount?: number;
@@ -288,6 +308,11 @@ export interface Candidate {
   /** Dated sources backing the above (evidence hard-gate, C4). */
   sources: { url: string; date?: string; primary?: boolean }[];
   notes?: string;
+  /** The company's own site as a source linked it, and the page that did (discovery hint). */
+  website?: string;
+  websiteSourceUrl?: string;
+  /** Set by the stage-2 resolver before ingest; ingest stays pure and only reads it. */
+  resolution?: { method?: DomainMethod; confidence: number; evidenceUrl?: string; candidates: DomainCandidateSummary[] };
 }
 
 /** An item that failed verification and needs human eyes (never silently dropped). */
@@ -306,4 +331,14 @@ export interface ReviewItem {
   detail: string;
   evidence: Evidence[];
   createdAt: string;
+  /** Verified-but-not-certain domains from the resolver, offered as one-click promotes. */
+  candidates?: DomainCandidateSummary[];
+  /** Times this item was seen again; repeat sightings merge instead of duplicating. */
+  sightings?: number;
+  lastSeenAt?: string;
+  /** Background retry state for no_domain items. */
+  resolveAttempts?: number;
+  lastResolveAt?: string;
+  /** Kept so a retry can verify against the same story the item came from. */
+  context?: { description?: string; category?: string };
 }
