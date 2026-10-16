@@ -1,13 +1,15 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Store } from "./db/db.ts";
-import { detectBoard, fetchBoard } from "./fetchers/ats/index.ts";
+import { fetchBoard } from "./fetchers/ats/index.ts";
+import { liveResolveDeps, resolveCareersFor, type ResolveDeps } from "./resolve/index.ts";
 import { nowIso } from "./fetchers/http.ts";
 import { matchBoard } from "./lib/roleMatch.ts";
 import { companyKey } from "./lib/identity.ts";
 import { buildDiscoveryContext } from "./discover.ts";
 import { evaluateRelevance } from "./lib/relevance.ts";
-import { canonicalLocationLabel, searchLocations } from "./lib/locations.ts";
+import { canonicalLocationLabel, isRemoteJob, searchLocations } from "./lib/locations.ts";
+import { config } from "./config.ts";
 import { renderDashboard } from "./dashboard.ts";
 import type { Company, RoleMatch, SearchProfile, TargetRole } from "./types.ts";
 
@@ -45,6 +47,9 @@ function companySummary(store: Store, company: Company) {
     relevance: evaluateRelevance(company, store.getSearchProfile()),
     atsDetection: company.atsDetection ?? (company.ats ? "available" : undefined),
     atsCheckedAt: company.atsCheckedAt,
+    careersUrl: company.careersUrl,
+    unsupportedAts: company.unsupportedAts,
+    domainSource: company.domainSource,
     firstSeen: company.firstSeen,
     lastUpdated: company.lastUpdated,
   };
@@ -65,7 +70,7 @@ function latestDigestPaths(): { date: string; path: string }[] {
 function sanitizeProfile(input: unknown, current: SearchProfile): Omit<SearchProfile, "updatedAt"> | null {
   if (!input || typeof input !== "object") return null;
   const value = input as Record<string, unknown>;
-  const validRoles: TargetRole[] = ["solutions-engineer", "sales-engineer", "product-manager", "partnerships", "forward-deployed"];
+  const validRoles = Object.keys(config.targetRoles) as TargetRole[];
   const stages = ["pre-seed", "seed", "series-a", "series-b", "series-c", "series-d-plus", "growth", "unknown"] as const;
   const teamSizes = ["1-10", "11-50", "51-200", "201-1000", "1000-plus"] as const;
   const signals = ["funding", "traction", "hiring", "launches", "leadership", "open-roles"] as const;
@@ -198,28 +203,23 @@ function validApplicationStatus(value: unknown): value is import("./types.ts").A
   return ["researching", "networking", "applied", "interviewing", "closed"].includes(String(value));
 }
 
-async function resolveManualAts(store: Store, domain: string): Promise<void> {
-  for (const slug of [domain, domain.split(".")[0]!]) {
-    const found = await detectBoard(slug).catch(() => null);
-    if (!found) continue;
-    const company = store.getCompany(domain);
-    if (!company) return;
-    company.ats = found.ref;
-    company.atsDetection = "available";
-    company.atsCheckedAt = nowIso();
-    company.openRolesCount = found.jobs.length;
-    store.upsertCompany(company);
-    store.replaceCachedJobs(domain, found.jobs);
-    return;
-  }
+/** Find the job board from the company's own site, in the background. */
+async function resolveCompanyCareers(store: Store, domain: string, deps: ResolveDeps): Promise<void> {
+  await resolveCareersFor(store, [domain], deps).catch(() => 0);
   const company = store.getCompany(domain);
-  if (!company) return;
-  company.atsDetection = "not-detected";
-  company.atsCheckedAt = nowIso();
-  store.upsertCompany(company);
+  if (company?.atsDetection === "checking") {
+    company.atsDetection = "not-detected";
+    company.atsCheckedAt = nowIso();
+    store.upsertCompany(company);
+  }
 }
 
-export function createDashboardHandler(store: Store): (request: Request) => Response | Promise<Response> {
+export function createDashboardHandler(
+  store: Store,
+  opts: { resolveDeps?: ResolveDeps } = {},
+): (request: Request) => Response | Promise<Response> {
+  let resolveDeps = opts.resolveDeps;
+  const deps = () => (resolveDeps ??= liveResolveDeps());
   return async (request) => {
     const url = new URL(request.url);
     const { pathname } = url;
@@ -306,7 +306,7 @@ export function createDashboardHandler(store: Store): (request: Request) => Resp
         evidence: [], firstSeen: now, lastUpdated: now, sightings: 1, pinned: true,
         atsDetection: "checking",
       });
-      void resolveManualAts(store, domain);
+      void resolveCompanyCareers(store, domain, deps());
       return json({ company: companySummary(store, store.getCompany(domain)!), existing: false }, 201);
     }
 
@@ -326,9 +326,13 @@ export function createDashboardHandler(store: Store): (request: Request) => Resp
           const now = new Date().toISOString();
           store.upsertCompany({
             domain, displayName: row.item.displayName, aliases: [row.item.displayName], status: "watching",
-            roleWatches: [], evidence: row.item.evidence, firstSeen: now, lastUpdated: now, sightings: 1, pinned: true,
+            roleWatches: [], evidence: row.item.evidence, firstSeen: now, lastUpdated: now, sightings: row.item.sightings ?? 1, pinned: true,
+            description: row.item.context?.description, category: row.item.context?.category,
+            domainSource: { method: "manual", confidence: 1 }, atsDetection: "checking",
           });
+          void resolveCompanyCareers(store, domain, deps());
         }
+        if (row.item.reason === "no_domain") store.rememberNameDomain(row.item.displayName, domain, "manual", 1);
         store.resolveReviewItem(id);
         return json({ resolved: true, company: store.getCompany(domain) });
       }
@@ -351,7 +355,7 @@ export function createDashboardHandler(store: Store): (request: Request) => Resp
       const includeRaw = url.searchParams.get("include") ?? "";
       const included = new Set((includeRaw === "true" ? "applied,hidden" : includeRaw).split(",").filter(Boolean));
       if (family) roles = roles.filter((role) => role.role === family);
-      if (remote === "true") roles = roles.filter((role) => role.job.isRemote);
+      if (remote === "true") roles = roles.filter((role) => isRemoteJob(role.job));
       if (location) roles = roles.filter((role) => role.job.location.toLowerCase().includes(location));
       if (seniority === "entry" || seniority === "mid" || seniority === "senior") {
         roles = roles.filter((role) => roleSeniority(role) === seniority);

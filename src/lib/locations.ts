@@ -3,6 +3,8 @@
 
 import { getCountries, getStates, searchCity } from "@anrivera/countries-states-cities-database";
 import type { City, Country, State } from "@anrivera/countries-states-cities-database";
+import { config } from "../config.ts";
+import type { JobPosting } from "../types.ts";
 
 export type LocationOption = {
   id: number;
@@ -113,4 +115,35 @@ export function matchesSelectedLocation(jobLocation: string, selectedLabel: stri
     : [option.countryCode.toLowerCase(), option.country.toLowerCase()];
   return [option.regionCode.toLowerCase(), option.region.toLowerCase(), ...countryAliases]
     .some((qualifier) => qualifier.length > 1 && job.includes(qualifier));
+}
+
+const escapeRe = (term: string) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const termsRe = (terms: readonly string[]) => new RegExp(`(?<![\\w.])(?:${terms.map(escapeRe).join("|")})(?![\\w.])`, "gi");
+const NYC_RE = termsRe(config.locationScope.nycTerms);
+const NYC_STATE_PAIR_RE = /new york,\s*(?:ny|new york)\b/i;
+const REMOTE_RE = termsRe(config.locationScope.remoteTerms);
+const FOREIGN_RE = termsRe(config.locationScope.foreignRemoteRegions);
+const US_RE = termsRe(config.locationScope.usQualifiers);
+const test = (re: RegExp, text: string) => { re.lastIndex = 0; return re.test(text); };
+
+/** True when an ATS location label names New York City (not elsewhere in NY state). */
+export function isNewYorkCity(location: string): boolean {
+  if (NYC_STATE_PAIR_RE.test(location)) return true;
+  for (const match of location.matchAll(NYC_RE)) {
+    if (!/,\s*$/.test(location.slice(0, match.index))) return true;
+  }
+  return false;
+}
+
+/** ATS remote flags are inconsistent (Greenhouse has none), so the label counts too. */
+export function isRemoteJob(job: Pick<JobPosting, "location" | "isRemote">): boolean {
+  return job.isRemote === true || test(REMOTE_RE, job.location ?? "");
+}
+
+/** Hard scope from config.locationScope: New York City, or remote that is open to the US. */
+export function inLocationScope(job: Pick<JobPosting, "location" | "isRemote">): boolean {
+  const location = job.location ?? "";
+  if (isNewYorkCity(location)) return true;
+  if (!isRemoteJob(job)) return false;
+  return !test(FOREIGN_RE, location) || test(US_RE, location);
 }

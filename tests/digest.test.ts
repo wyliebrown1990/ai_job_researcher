@@ -71,8 +71,8 @@ describe("renderDigest", () => {
 
   test("only adds the saved roles and due actions section when there is work to surface", () => {
     const match = {
-      role: "product-manager" as const, matchScore: 1, matchedOn: ["title" as const],
-      job: { externalId: "pm-1", title: "Product Manager", location: "New York", url: "https://example.com/jobs/pm-1", retrievedAt: NOW.toISOString() },
+      role: "sales-engineer" as const, matchScore: 1, matchedOn: ["title" as const],
+      job: { externalId: "se-1", title: "Sales Engineer", location: "New York", url: "https://example.com/jobs/se-1", retrievedAt: NOW.toISOString() },
     };
     const md = renderDigest({
       runDate: "2026-08-08", companies: [], reviewItems: [], now: NOW,
@@ -80,7 +80,7 @@ describe("renderDigest", () => {
       dueActions: [{ id: 1, domain: "example.com", externalId: "pm-2", status: "networking", notes: "Send a concise follow-up.", nextActionAt: "2026-08-08", createdAt: NOW.toISOString(), updatedAt: NOW.toISOString() }],
     });
     expect(md).toContain("## Saved roles & due actions");
-    expect(md).toContain("Saved: [Product Manager]");
+    expect(md).toContain("Saved: [Sales Engineer]");
     expect(md).toContain("Due 2026-08-08");
   });
 
@@ -105,7 +105,7 @@ describe("renderDigest", () => {
     const fitFirst = company({ domain: "fit.example", displayName: "Fit first" });
     fitFirst.score = scoreCompany(deriveComponents({ openRolesCount: 1 }, NOW));
     const role = (title: string, relevance: number) => ({
-      role: "product-manager" as const, matchScore: 1, matchedOn: ["title" as const], relevance: { included: true, score: relevance, label: "match" as const, reasons: ["test fit"] },
+      role: "sales-engineer" as const, matchScore: 1, matchedOn: ["title" as const], relevance: { included: true, score: relevance, label: "match" as const, reasons: ["test fit"] },
       job: { externalId: title, title, location: "Remote", isRemote: true, url: `https://example.com/${title}`, retrievedAt: NOW.toISOString() },
     });
     const md = renderDigest({

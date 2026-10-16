@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { Store } from "../src/db/db.ts";
-import type { Company, FundingEvent, JobPosting } from "../src/types.ts";
+import type { Company, FundingEvent, JobPosting, SearchProfile } from "../src/types.ts";
 
 const stores: Store[] = [];
 
@@ -93,10 +93,14 @@ describe("Store personal signal foundation", () => {
 
   test("returns defaults and persists a personal search profile", () => {
     const db = store();
-    expect(db.getSearchProfile().targetRoles).toContain("solutions-engineer");
+    expect(db.getSearchProfile()).toMatchObject({
+      targetRoles: ["applied-ai", "sales-engineer", "solutions-consultant", "se-leadership"],
+      acceptedLocations: ["New York City, NY, United States"],
+      remotePreference: "remote-or-location",
+    });
 
     db.saveSearchProfile({
-      targetRoles: ["product-manager"],
+      targetRoles: ["solutions-consultant"],
       acceptedLocations: ["New York"],
       remotePreference: "remote-or-location",
       includedSectors: ["Agentic AI"],
@@ -106,10 +110,27 @@ describe("Store personal signal foundation", () => {
     });
 
     expect(db.getSearchProfile()).toMatchObject({
-      targetRoles: ["product-manager"],
+      targetRoles: ["solutions-consultant"],
       acceptedLocations: ["New York City, NY, United States"],
       minCompanyScore: 55,
     });
+  });
+
+  test("migrates a profile saved with retired role families to pre-sales + NYC/remote", () => {
+    const db = store();
+    db.saveSearchProfile({
+      targetRoles: ["solutions-engineer", "product-manager", "forward-deployed"] as unknown as SearchProfile["targetRoles"],
+      acceptedLocations: [],
+      remotePreference: "any",
+    });
+    expect(db.getSearchProfile()).toMatchObject({
+      targetRoles: ["applied-ai", "sales-engineer", "solutions-consultant", "se-leadership"],
+      acceptedLocations: ["New York City, NY, United States"],
+      remotePreference: "remote-or-location",
+    });
+
+    db.saveSearchProfile({ targetRoles: ["sales-engineer"], remotePreference: "remote-only" });
+    expect(db.getSearchProfile()).toMatchObject({ targetRoles: ["sales-engineer"], remotePreference: "remote-only" });
   });
 
   test("keeps a role application independent from company state", () => {

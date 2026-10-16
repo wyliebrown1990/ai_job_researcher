@@ -83,3 +83,32 @@ export function sameCompany(
   if (ka && kb) return ka === kb ? "same" : "different";
   return "unknown"; // no domain on one side -> caller routes to review queue
 }
+
+const CORPORATE_SUFFIXES = new Set(["inc", "incorporated", "llc", "ltd", "limited", "corp", "corporation", "co", "company", "gmbh", "plc", "sa"]);
+/** Trailing words that vary between mentions of the same company ("June" / "June AI"). */
+const SOFT_SUFFIXES = new Set(["ai", "labs", "lab", "hq", "technologies", "technology", "tech"]);
+
+/** Lowercase name words without parentheticals or corporate suffixes. */
+export function nameTokens(name: string): string[] {
+  return name
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/&/g, " and ")
+    .split(/[^a-z0-9]+/)
+    .filter((token) => token && !CORPORATE_SUFFIXES.has(token));
+}
+
+/** Name tokens with soft suffixes dropped, keeping at least one token. */
+export function coreNameTokens(name: string): string[] {
+  const tokens = nameTokens(name);
+  while (tokens.length > 1 && SOFT_SUFFIXES.has(tokens.at(-1)!)) tokens.pop();
+  return tokens;
+}
+
+/**
+ * Loose name key for grouping review-queue items ("June AI" and "June" share one).
+ * Only for collapsing to-do items — never for merging companies (E4).
+ */
+export function nameKey(name: string): string {
+  return coreNameTokens(name).join("");
+}

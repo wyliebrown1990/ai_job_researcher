@@ -17,7 +17,8 @@ to consider applying to.* State persists between runs so every digest is a
 **delta** on the day before.
 
 Target user profile (skills to match against roles):
-Sales Engineer · Solutions Engineer · Product Manager · Partner/Partnerships ·
+Sales Engineer · Solutions Engineer · Solutions Consultant · Applied AI Consultant ·
+Director of Sales Engineering / Solutions Consulting · technical pre-sales, NYC or remote ·
 technical-GTM. Source: https://www.linkedin.com/in/wylie-brown/
 
 ---

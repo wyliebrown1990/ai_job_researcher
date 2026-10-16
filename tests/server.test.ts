@@ -29,7 +29,9 @@ function setup() {
   };
   store.upsertCompany(company);
   store.writeSnapshot(company, "2026-08-13", 4);
-  return { store, handler: createDashboardHandler(store) };
+  // Offline resolver: no site or board is reachable in tests.
+  const resolveDeps = { fetchPage: async () => null, fetchBoard: async () => { throw new Error("offline"); } };
+  return { store, handler: createDashboardHandler(store, { resolveDeps }) };
 }
 
 afterEach(() => { while (stores.length) stores.pop()!.close(); });
@@ -48,9 +50,9 @@ describe("local dashboard API", () => {
     const { handler } = setup();
     const profile = await handler(new Request("http://local/api/profile", {
       method: "PUT", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ targetRoles: ["product-manager"], remotePreference: "remote-only", minCompanyScore: 60, customTitlePhrases: ["AI deployment lead"], preferredStages: ["series-a"], searchBrief: "Customer-facing AI work." }),
+      body: JSON.stringify({ targetRoles: ["se-leadership"], remotePreference: "remote-only", minCompanyScore: 60, customTitlePhrases: ["AI deployment lead"], preferredStages: ["series-a"], searchBrief: "Customer-facing AI work." }),
     }));
-    expect(await profile.json()).toMatchObject({ targetRoles: ["product-manager"], remotePreference: "remote-only" });
+    expect(await profile.json()).toMatchObject({ targetRoles: ["se-leadership"], remotePreference: "remote-only" });
 
     const brief = await handler(new Request("http://local/api/profile/brief"));
     expect((await brief.json() as { brief: string }).brief).toContain("AI deployment lead");

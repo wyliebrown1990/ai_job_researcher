@@ -8,8 +8,10 @@ Each morning the loop:
 
 1. **Discovers** newly founded / newly funded AI companies.
 2. **Refreshes** growth signals on companies already tracked.
-3. **Scans** for open roles matching a technical-GTM skill set (Sales Engineer,
-   Solutions Engineer, Product Manager, Partner/Partnerships).
+3. **Scans** for open technical pre-sales roles (Sales/Solutions Engineer, Solutions
+   Consultant/Architect, Applied AI Consultant, and Director/Head of Sales
+   Engineering or Solutions Consulting) located in **New York City or remote**.
+   Product management, partnerships and forward-deployed roles are excluded.
 4. **Scores** each company on quantifiable growth — not hype (every claim needs a
    dated source).
 5. **Emails** a curated digest that's a delta on the day before: industry pulse,
@@ -28,7 +30,8 @@ up before a machine migration or reset.
 The Search criteria page stores an editable local profile for role families and
 custom title phrases, work arrangement/location, sectors/themes, company stage and
 size, equity context, avoid lists, signal interests, and an optional short brief.
-Blank criteria are neutral. Required rules keep incompatible roles out of the primary
+Blank criteria are neutral. The NYC-or-remote location scope (`config.locationScope`)
+is always enforced; the profile can narrow it (e.g. remote only) but not widen it. Required rules keep incompatible roles out of the primary
 queue; preferred rules rank matches without hiding public facts that are unknown.
 Locations are selected from an on-device type-ahead backed by the MIT-licensed
 Countries States Cities Database (150k+ cities), so each saved location is a
@@ -38,6 +41,16 @@ The same normalized profile is used to render the dashboard's “Tomorrow’s re
 brief” preview and to build the user-specific context for `scan discover` and the
 scheduled `scan run --discover` path. It does not alter the evidence-backed Growth
 Score; personal fit is a separate, explainable ranking.
+
+## How companies get domains and job boards
+
+Discovery finds companies in funding news, which rarely states a company's website.
+A resolver then finds and **verifies** each domain (press-release links → obvious
+name-based domains → search fallback), reads the job board straight from the
+company's own careers page, and keeps the list healthy: unresolved names are retried
+on a backoff, boardless companies are re-checked weekly, and repeat review items merge.
+Only names it can't verify reach the review queue, with likely domains offered as
+one-click choices. Details in [src/README.md](src/README.md).
 
 ## Design
 

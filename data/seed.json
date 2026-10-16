@@ -21,7 +21,7 @@
         "evidence": []
       },
       "judgments": { "customerTraction": 0.85, "productMomentum": 0.8 },
-      "roleWatches": ["product-manager"],
+      "roleWatches": ["sales-engineer"],
       "evidence": [
         { "claim": "Raised $150M Series C at $1.2B valuation, led by Prysm Capital and Eurazeo", "sourceUrl": "https://www.businesswire.com/news/home/20260804192350/en/HappyRobot-Raises-$150-Million-Series-C-to-Build-Enterprise-Superintelligence", "date": "2026-08-04", "primary": true },
         { "claim": "We've raised $150M Series C", "sourceUrl": "https://www.happyrobot.ai/blog/happyrobot-seriesc-fundraising-announcement", "date": "2026-08-04", "primary": true },
@@ -39,7 +39,7 @@
       "status": "watching",
       "ats": { "provider": "greenhouse", "slug": "anthropic" },
       "judgments": { "customerTraction": 0.9, "productMomentum": 0.9 },
-      "roleWatches": ["solutions-engineer", "partnerships"],
+      "roleWatches": ["sales-engineer", "applied-ai"],
       "evidence": [
         { "claim": "Anthropic careers — Applied AI / GTM / Partnerships roles open", "sourceUrl": "https://www.anthropic.com/careers", "date": "2026-08-08", "primary": true }
       ]
